@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="476" height="104" viewBox="0 0 476 104" role="img" aria-labelledby="title desc">
+  <title id="title">PflegeIndex</title>
+  <desc id="desc">PflegeIndex Logo mit einem stilisierten Wegweiser und Herz</desc>
+  <g transform="translate(2 4)">
+    <rect width="96" height="96" rx="27" fill="#163A63"/>
+    <path d="M29 70V42.5C29 31.2 37.8 23 49.4 23c11.2 0 19.6 7.8 19.6 18.4 0 10.2-7.9 17.7-19 17.7H39.8" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M57.2 35.3c-3.1 0-5.3 1.9-6.2 4.2-.9-2.3-3.1-4.2-6.2-4.2-4 0-6.8 3.1-6.8 6.9 0 5.7 6.2 9.5 13 14 6.8-4.5 13-8.3 13-14 0-3.8-2.8-6.9-6.8-6.9Z" fill="#E0525C"/>
+    <path d="M69.5 61.5c-4.7 0-8.2 3.5-8.2 8 0 5.9 8.2 13 8.2 13s8.2-7.1 8.2-13c0-4.5-3.5-8-8.2-8Z" fill="#4CAF50"/>
+    <circle cx="69.5" cy="69.5" r="2.8" fill="#fff"/>
+  </g>
+  <text x="121" y="67" font-family="Manrope, Arial, sans-serif" font-size="50" font-weight="750" letter-spacing="-2.2">
+    <tspan fill="#163A63">Pflege</tspan><tspan fill="#4CAF50">Index</tspan>
+  </text>
+</svg>
