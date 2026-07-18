@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\City;
 use App\Models\Facility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class DirectoryPagesTest extends TestCase
@@ -58,6 +59,100 @@ class DirectoryPagesTest extends TestCase
             ->assertSee('E-Mail senden')
             ->assertSee('In Google Maps öffnen')
             ->assertSee('google.com/maps/search/?api=1&amp;query=', false);
+    }
+
+    public function test_facility_page_shows_other_facilities_from_the_same_city_and_links_to_the_city(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $relatedFacility = $this->createFacility(
+            $city,
+            'related-14467-test',
+            'Pflege am Park',
+            'pflege-am-park-14467',
+            'Parkstraße 2',
+        );
+        $otherCity = City::create([
+            'name' => 'Calau',
+            'slug' => 'calau',
+            'state' => 'Brandenburg',
+            'state_slug' => 'brandenburg',
+        ]);
+        $otherCityFacility = $this->createFacility(
+            $otherCity,
+            'other-city-03205-test',
+            'Pflege in Calau',
+            'pflege-in-calau-03205',
+            'Calauer Weg 3',
+        );
+
+        $response = $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee("Weitere Pflegeeinrichtungen in {$city->name}")
+            ->assertSee($relatedFacility->name)
+            ->assertSee("Alle Pflegeeinrichtungen in {$city->name} ansehen")
+            ->assertSee('href="'.route('cities.show', $city).'"', false);
+
+        $relatedHtml = $this->relatedFacilitiesHtml($response);
+
+        $this->assertStringNotContainsString($facility->name, $relatedHtml);
+        $this->assertStringNotContainsString($otherCityFacility->name, $relatedHtml);
+    }
+
+    public function test_related_facilities_are_limited_to_three_and_stably_sorted(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $firstById = $this->createFacility(
+            $city,
+            'alpha-first-14467-test',
+            'Alpha Pflege',
+            'alpha-pflege-erster-eintrag-14467',
+            'Sortierung 1',
+        );
+        $secondById = $this->createFacility(
+            $city,
+            'alpha-second-14467-test',
+            'Alpha Pflege',
+            'alpha-pflege-zweiter-eintrag-14467',
+            'Sortierung 2',
+        );
+        $afterAlpha = $this->createFacility(
+            $city,
+            'beta-14467-test',
+            'Beta Pflege',
+            'beta-pflege-14467',
+            'Sortierung 3',
+        );
+        $excludedByLimit = $this->createFacility(
+            $city,
+            'stationary-14467-test',
+            'A Pflegeheim',
+            'a-pflegeheim-14467',
+            'Sortierung 4',
+            'Stationäre Pflege',
+        );
+
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $relatedHtml = $this->relatedFacilitiesHtml($response);
+
+        $this->assertSame(3, substr_count($relatedHtml, '<article class="result-card">'));
+        $this->assertStringContainsString($firstById->address, $relatedHtml);
+        $this->assertStringContainsString($secondById->address, $relatedHtml);
+        $this->assertStringContainsString($afterAlpha->address, $relatedHtml);
+        $this->assertStringNotContainsString($excludedByLimit->address, $relatedHtml);
+        $this->assertTrue(
+            strpos($relatedHtml, $firstById->address) < strpos($relatedHtml, $secondById->address)
+            && strpos($relatedHtml, $secondById->address) < strpos($relatedHtml, $afterAlpha->address),
+        );
+    }
+
+    public function test_facility_page_hides_related_block_when_the_facility_is_alone_in_its_city(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertDontSee('id="related-facilities"', false)
+            ->assertDontSee("Weitere Pflegeeinrichtungen in {$city->name}");
     }
 
     public function test_short_german_phone_does_not_leave_a_two_digit_group(): void
@@ -123,5 +218,40 @@ class DirectoryPagesTest extends TestCase
         ]);
 
         return [$city, $facility];
+    }
+
+    private function createFacility(
+        City $city,
+        string $sourceId,
+        string $name,
+        string $slug,
+        string $address,
+        string $type = 'Ambulante Pflege',
+    ): Facility {
+        return Facility::create([
+            'source_id' => $sourceId,
+            'city_id' => $city->id,
+            'name' => $name,
+            'slug' => $slug,
+            'postal_code' => '14467',
+            'address' => $address,
+            'type' => $type,
+            'care_types' => [$type],
+            'features' => [],
+        ]);
+    }
+
+    private function relatedFacilitiesHtml(TestResponse $response): string
+    {
+        $content = $response->getContent();
+        $start = strpos($content, '<section class="section section--white" id="related-facilities"');
+
+        if ($start === false) {
+            return '';
+        }
+
+        $end = strpos($content, '</section>', $start);
+
+        return substr($content, $start, $end - $start + strlen('</section>'));
     }
 }

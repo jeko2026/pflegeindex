@@ -111,4 +111,19 @@
             <a class="contact-route" href="{{ $googleMapsUrl }}" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
         </aside>
     </div>
+    @if($relatedFacilities->isNotEmpty())
+        <section class="section section--white" id="related-facilities" aria-labelledby="related-facilities-title">
+            <div class="container">
+                <div class="section-heading">
+                    <h2 id="related-facilities-title">Weitere Pflegeeinrichtungen in {{ $city->name }}</h2>
+                </div>
+                <div class="results-list">
+                    @foreach($relatedFacilities as $relatedFacility)
+                        @include('facilities._card', ['facility' => $relatedFacility])
+                    @endforeach
+                </div>
+                <p style="margin:24px 0 0"><a class="text-link" href="{{ route('cities.show', $city) }}">Alle Pflegeeinrichtungen in {{ $city->name }} ansehen</a></p>
+            </div>
+        </section>
+    @endif
 @endsection
