@@ -33,8 +33,7 @@
     <meta property="og:site_name" content="PflegeIndex">
     <meta property="og:locale" content="de_DE">
     @php
-        $schema = array_filter([
-            '@context' => 'https://schema.org',
+        $localBusinessSchema = array_filter([
             '@type' => 'LocalBusiness',
             'name' => $facility->name,
             'description' => $pageDescription,
@@ -65,13 +64,57 @@
                 'addressCountry' => 'DE',
             ],
         ], fn ($value) => $value !== null);
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                $localBusinessSchema,
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 1,
+                            'name' => 'Startseite',
+                            'item' => route('home'),
+                        ],
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 2,
+                            'name' => $city->state,
+                            'item' => route('region.show'),
+                        ],
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 3,
+                            'name' => $city->name,
+                            'item' => route('cities.show', $city),
+                        ],
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 4,
+                            'name' => $facility->name,
+                            'item' => $canonicalUrl,
+                        ],
+                    ],
+                ],
+            ],
+        ];
     @endphp
     <script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
 @endpush
 
 @section('content')
     <section class="page-hero" style="padding-top:30px;padding-bottom:30px">
-        <div class="container"><p class="breadcrumbs" style="margin:0"><a href="{{ route('home') }}">Startseite</a><span>›</span><a href="{{ route('region.show') }}">Brandenburg</a><span>›</span><a href="{{ route('cities.show', $city) }}">{{ $city->name }}</a><span>›</span><span>{{ $facility->name }}</span></p></div>
+        <div class="container">
+            <nav aria-label="Breadcrumb">
+                <ol class="breadcrumbs" style="margin:0">
+                    <li><a href="{{ route('home') }}">Startseite</a></li>
+                    <li><span aria-hidden="true">›</span><a href="{{ route('region.show') }}">{{ $city->state }}</a></li>
+                    <li><span aria-hidden="true">›</span><a href="{{ route('cities.show', $city) }}">{{ $city->name }}</a></li>
+                    <li aria-current="page"><span aria-hidden="true">›</span><span>{{ $facility->name }}</span></li>
+                </ol>
+            </nav>
+        </div>
     </section>
     <div class="container detail-layout">
         <div class="detail-main">

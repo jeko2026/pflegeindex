@@ -115,7 +115,8 @@ img, svg { display: block; }
 .step p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.65; }
 
 .page-hero { padding: 58px 0 62px; border-bottom: 1px solid var(--line); background: linear-gradient(120deg,#f9fbfc,#edf7ef); }
-.breadcrumbs { margin: 0 0 20px; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; color: #667787; font-size: 14px; }
+.breadcrumbs { margin: 0 0 20px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; list-style: none; color: #667787; font-size: 14px; }
+.breadcrumbs li { display: flex; gap: 8px; min-width: 0; }
 .breadcrumbs a, .breadcrumbs span { min-width: 0; overflow-wrap: anywhere; }
 .breadcrumbs a { color: var(--navy); text-decoration: none; }
 .page-hero h1 { font-size: clamp(38px,4.5vw,58px); }

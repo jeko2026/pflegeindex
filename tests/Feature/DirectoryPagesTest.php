@@ -86,14 +86,14 @@ class DirectoryPagesTest extends TestCase
         $expectedDescription = "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.";
         $response = $this->get($canonicalUrl)->assertOk();
         $schema = $this->structuredData($response);
+        $localBusiness = $this->schemaNode($schema, 'LocalBusiness');
 
         $this->assertSame('https://schema.org', $schema['@context']);
-        $this->assertSame('LocalBusiness', $schema['@type']);
-        $this->assertSame($facility->name, $schema['name']);
-        $this->assertSame($expectedDescription, $schema['description']);
-        $this->assertSame($canonicalUrl, $schema['url']);
-        $this->assertSame($facility->phone, $schema['telephone']);
-        $this->assertSame($facility->email, $schema['email']);
+        $this->assertSame($facility->name, $localBusiness['name']);
+        $this->assertSame($expectedDescription, $localBusiness['description']);
+        $this->assertSame($canonicalUrl, $localBusiness['url']);
+        $this->assertSame($facility->phone, $localBusiness['telephone']);
+        $this->assertSame($facility->email, $localBusiness['email']);
         $this->assertSame([
             '@type' => 'PostalAddress',
             'streetAddress' => $facility->address,
@@ -101,7 +101,7 @@ class DirectoryPagesTest extends TestCase
             'addressLocality' => $city->name,
             'addressRegion' => 'Brandenburg',
             'addressCountry' => 'DE',
-        ], $schema['address']);
+        ], $localBusiness['address']);
         $this->assertSame(1, substr_count($this->headHtml($response), '<script type="application/ld+json">'));
         $this->assertStringNotContainsString($facility->name, $this->headHtml($response));
     }
@@ -110,12 +110,47 @@ class DirectoryPagesTest extends TestCase
     {
         [$city, $facility] = $this->createDirectoryEntry();
 
-        $schema = $this->structuredData(
+        $localBusiness = $this->schemaNode($this->structuredData(
             $this->get(route('facilities.show', [$city, $facility]))->assertOk(),
-        );
+        ), 'LocalBusiness');
 
-        $this->assertArrayNotHasKey('telephone', $schema);
-        $this->assertArrayNotHasKey('email', $schema);
+        $this->assertArrayNotHasKey('telephone', $localBusiness);
+        $this->assertArrayNotHasKey('email', $localBusiness);
+    }
+
+    public function test_facility_page_has_accessible_visible_breadcrumbs(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $breadcrumbs = $this->breadcrumbHtml($response);
+
+        $this->assertStringContainsString('<nav aria-label="Breadcrumb">', $breadcrumbs);
+        $this->assertStringContainsString('<ol class="breadcrumbs"', $breadcrumbs);
+        $this->assertStringContainsString('href="'.route('home').'">Startseite</a>', $breadcrumbs);
+        $this->assertStringContainsString('href="'.route('region.show').'">'.$city->state.'</a>', $breadcrumbs);
+        $this->assertStringContainsString('href="'.route('cities.show', $city).'">'.$city->name.'</a>', $breadcrumbs);
+        $this->assertStringContainsString('aria-current="page"', $breadcrumbs);
+        $this->assertStringContainsString($facility->name, $breadcrumbs);
+        $this->assertStringNotContainsString('href="'.route('facilities.show', [$city, $facility]).'"', $breadcrumbs);
+        $this->get(route('region.show'))->assertOk();
+        $this->get(route('cities.show', $city))->assertOk();
+    }
+
+    public function test_facility_page_has_valid_breadcrumb_list_structured_data(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $canonicalUrl = route('facilities.show', [$city, $facility]);
+
+        $schema = $this->structuredData($this->get($canonicalUrl)->assertOk());
+        $breadcrumbList = $this->schemaNode($schema, 'BreadcrumbList');
+
+        $this->assertSame([
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Startseite', 'item' => route('home')],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => $city->state, 'item' => route('region.show')],
+            ['@type' => 'ListItem', 'position' => 3, 'name' => $city->name, 'item' => route('cities.show', $city)],
+            ['@type' => 'ListItem', 'position' => 4, 'name' => $facility->name, 'item' => $canonicalUrl],
+        ], $breadcrumbList['itemListElement']);
     }
 
     public function test_facility_page_shows_email_without_requiring_a_phone(): void
@@ -337,6 +372,15 @@ class DirectoryPagesTest extends TestCase
         return substr($content, $start, $end - $start + strlen('</head>'));
     }
 
+    private function breadcrumbHtml(TestResponse $response): string
+    {
+        $content = $response->getContent();
+        $start = strpos($content, '<nav aria-label="Breadcrumb">');
+        $end = strpos($content, '</nav>', $start);
+
+        return substr($content, $start, $end - $start + strlen('</nav>'));
+    }
+
     /** @return array<string, mixed> */
     private function structuredData(TestResponse $response): array
     {
@@ -349,5 +393,15 @@ class DirectoryPagesTest extends TestCase
         $this->assertSame(1, $matched);
 
         return json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    /** @param array<string, mixed> $schema */
+    private function schemaNode(array $schema, string $type): array
+    {
+        $node = collect($schema['@graph'])->firstWhere('@type', $type);
+
+        $this->assertIsArray($node);
+
+        return $node;
     }
 }
