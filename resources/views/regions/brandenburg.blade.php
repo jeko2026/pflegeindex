@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Pflegeeinrichtungen in Brandenburg – PflegeIndex')
-@section('description', 'Pflegeeinrichtungen in 257 Orten Brandenburgs alphabetisch entdecken.')
+@section('description', "{$facilityCount} Pflegeeinrichtungen in {$cities->count()} Orten Brandenburgs entdecken.")
 
 @section('content')
     <section class="page-hero">
@@ -18,7 +18,14 @@
                 <div><strong>{{ $cities->count() }}</strong><span>Orte</span></div>
                 <div><strong>{{ $typeCount }}</strong><span>Einrichtungsarten</span></div>
             </div>
-            <div class="section-heading section-heading--split"><div><p class="eyebrow">Ortsverzeichnis</p><h2>Pflegeangebote nach Ort</h2></div><a href="{{ route('directory.index') }}">Alle Einrichtungen durchsuchen</a></div>
+            <div class="results-heading" style="margin-top:42px"><h2>{{ number_format($facilities->total(), 0, ',', '.') }} Pflegeeinrichtungen</h2><p>{{ $facilities->count() }} auf dieser Seite · nach Ort und Name sortiert</p></div>
+            <div class="results-list" style="margin-top:16px">
+                @foreach($facilities as $facility)
+                    @include('facilities._card', ['facility' => $facility])
+                @endforeach
+            </div>
+            <x-pagination :paginator="$facilities" />
+            <div class="section-heading section-heading--split" style="margin-top:72px"><div><p class="eyebrow">Ortsverzeichnis</p><h2>Pflegeangebote nach Ort</h2></div><a href="{{ route('directory.index') }}">Alle Einrichtungen durchsuchen</a></div>
             <div class="city-grid">
                 @foreach($cities as $city)
                     <a class="city-card" href="{{ route('cities.show', $city) }}">
