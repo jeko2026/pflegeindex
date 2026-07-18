@@ -23,6 +23,7 @@ class RegionController extends Controller
         return view('regions.brandenburg', [
             'cities' => City::query()
                 ->where('state_slug', 'brandenburg')
+                ->has('facilities')
                 ->withCount('facilities')
                 ->orderBy('name')
                 ->get(),
