@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 Route::get('/pflegeheime.html', [DirectoryController::class, 'index'])->name('directory.index');
 Route::get('/brandenburg.html', [RegionController::class, 'show'])->name('region.show');
+Route::get('/brandenburg/{city:slug}.html', [CityController::class, 'show'])
+    ->defaults('stateSlug', 'brandenburg')
+    ->name('cities.show');
 Route::get('/pflegelexikon.html', [LexiconController::class, 'index'])->name('lexicon.index');
 Route::get('/pflegelexikon/{slug}.html', [LexiconController::class, 'show'])->name('lexicon.show');
 Route::view('/ueber-uns.html', 'pages.about')->name('pages.about');
@@ -59,6 +62,5 @@ Route::middleware('admin-session')->group(function (): void {
 });
 
 Route::prefix('pflegeeinrichtungen/brandenburg')->scopeBindings()->group(function (): void {
-    Route::get('{city:slug}', [CityController::class, 'show'])->name('cities.show');
     Route::get('{city:slug}/{facility:slug}', [FacilityController::class, 'show'])->name('facilities.show');
 });

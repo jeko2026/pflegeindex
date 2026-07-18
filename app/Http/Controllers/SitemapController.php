@@ -12,6 +12,8 @@ class SitemapController extends Controller
     {
         $cities = City::query()
             ->select(['id', 'name', 'slug', 'updated_at'])
+            ->where('state_slug', 'brandenburg')
+            ->whereHas('facilities')
             ->with(['facilities' => function ($query): void {
                 $query->select(['id', 'city_id', 'slug', 'updated_at'])->orderBy('slug');
             }])
