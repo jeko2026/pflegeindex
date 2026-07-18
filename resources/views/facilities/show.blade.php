@@ -1,11 +1,18 @@
 @extends('layouts.app')
 
-@section('title', $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
-    ? 'Fährmann Pflege Angermünde: Leistungen, Tagespflege & Wohnen'
-    : "{$facility->name} in {$city->name} – PflegeIndex")
-@section('description', $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
-    ? 'Fährmann Pflege in Angermünde: häusliche Krankenpflege, Tagespflege, Service-Wohnen, betreutes Wohnen und Pflegeberatung im Überblick.'
-    : "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.")
+@php
+    $pageTitle = $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
+        ? 'Fährmann Pflege Angermünde: Leistungen, Tagespflege & Wohnen'
+        : "{$facility->name} in {$city->name} – PflegeIndex";
+    $pageDescription = $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
+        ? 'Fährmann Pflege in Angermünde: häusliche Krankenpflege, Tagespflege, Service-Wohnen, betreutes Wohnen und Pflegeberatung im Überblick.'
+        : "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.";
+    $canonicalUrl = route('facilities.show', [$city, $facility]);
+@endphp
+
+@section('title', $pageTitle)
+@section('description', $pageDescription)
+@section('canonical', $canonicalUrl)
 @section('bodyClass', 'facility-seo-page')
 
 @php
@@ -19,6 +26,12 @@
 @endphp
 
 @push('head')
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
+    <meta property="og:site_name" content="PflegeIndex">
+    <meta property="og:locale" content="de_DE">
     @php
         $schema = array_filter([
             '@context' => 'https://schema.org',

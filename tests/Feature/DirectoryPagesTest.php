@@ -45,6 +45,34 @@ class DirectoryPagesTest extends TestCase
             ->assertDontSee('im offiziellen Einrichtungsverzeichnis');
     }
 
+    public function test_facility_page_has_unique_and_escaped_open_graph_metadata(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update(['name' => 'Pflege & Wohnen "Am Park"']);
+
+        $expectedTitle = "{$facility->name} in {$city->name} – PflegeIndex";
+        $expectedDescription = "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.";
+        $canonicalUrl = route('facilities.show', [$city, $facility]);
+
+        $response = $this->get($canonicalUrl)->assertOk();
+        $content = $response->getContent();
+        $head = $this->headHtml($response);
+
+        $this->assertStringContainsString('<meta property="og:type" content="website">', $head);
+        $this->assertStringContainsString('<meta property="og:title" content="'.e($expectedTitle).'">', $head);
+        $this->assertStringContainsString('<meta name="description" content="'.e($expectedDescription).'">', $head);
+        $this->assertStringContainsString('<meta property="og:description" content="'.e($expectedDescription).'">', $head);
+        $this->assertStringContainsString('<link rel="canonical" href="'.$canonicalUrl.'">', $head);
+        $this->assertStringContainsString('<meta property="og:url" content="'.$canonicalUrl.'">', $head);
+        $this->assertStringContainsString('<meta property="og:site_name" content="PflegeIndex">', $head);
+        $this->assertStringContainsString('<meta property="og:locale" content="de_DE">', $head);
+        $this->assertStringNotContainsString('content="Pflege & Wohnen "Am Park"', $content);
+
+        foreach (['og:type', 'og:title', 'og:description', 'og:url', 'og:site_name', 'og:locale'] as $property) {
+            $this->assertSame(1, substr_count($content, 'property="'.$property.'"'));
+        }
+    }
+
     public function test_facility_page_shows_email_without_requiring_a_phone(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
@@ -253,5 +281,14 @@ class DirectoryPagesTest extends TestCase
         $end = strpos($content, '</section>', $start);
 
         return substr($content, $start, $end - $start + strlen('</section>'));
+    }
+
+    private function headHtml(TestResponse $response): string
+    {
+        $content = $response->getContent();
+        $start = strpos($content, '<head>');
+        $end = strpos($content, '</head>');
+
+        return substr($content, $start, $end - $start + strlen('</head>'));
     }
 }
