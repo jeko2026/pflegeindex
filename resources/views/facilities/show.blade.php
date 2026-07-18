@@ -37,11 +37,11 @@
             '@context' => 'https://schema.org',
             '@type' => 'LocalBusiness',
             'name' => $facility->name,
-            'url' => route('facilities.show', [$city, $facility]),
-            'telephone' => $facility->phone,
-            'email' => $facility->email,
+            'description' => $pageDescription,
+            'url' => $canonicalUrl,
+            'telephone' => filled($facility->phone) ? $facility->phone : null,
+            'email' => filled($facility->email) ? $facility->email : null,
             'sameAs' => $displayWebsite ? [$displayWebsite] : null,
-            'description' => $editorialView ? 'Ambulante Pflege, Tagespflege, Service-Wohnen, betreutes Wohnen und Pflegeberatung in Angermünde.' : null,
             'hasOfferCatalog' => $editorialView ? [
                 '@type' => 'OfferCatalog',
                 'name' => 'Pflege- und Wohnangebote',
@@ -66,7 +66,7 @@
             ],
         ], fn ($value) => $value !== null);
     @endphp
-    <script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+    <script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
 @endpush
 
 @section('content')

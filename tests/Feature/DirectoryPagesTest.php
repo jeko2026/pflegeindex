@@ -73,6 +73,51 @@ class DirectoryPagesTest extends TestCase
         }
     }
 
+    public function test_facility_page_has_valid_local_business_structured_data(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'name' => 'Pflege & Wohnen </script> "Am Park"',
+            'phone' => '+49331234567',
+            'email' => 'kontakt@example.de',
+        ]);
+
+        $canonicalUrl = route('facilities.show', [$city, $facility]);
+        $expectedDescription = "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.";
+        $response = $this->get($canonicalUrl)->assertOk();
+        $schema = $this->structuredData($response);
+
+        $this->assertSame('https://schema.org', $schema['@context']);
+        $this->assertSame('LocalBusiness', $schema['@type']);
+        $this->assertSame($facility->name, $schema['name']);
+        $this->assertSame($expectedDescription, $schema['description']);
+        $this->assertSame($canonicalUrl, $schema['url']);
+        $this->assertSame($facility->phone, $schema['telephone']);
+        $this->assertSame($facility->email, $schema['email']);
+        $this->assertSame([
+            '@type' => 'PostalAddress',
+            'streetAddress' => $facility->address,
+            'postalCode' => $facility->postal_code,
+            'addressLocality' => $city->name,
+            'addressRegion' => 'Brandenburg',
+            'addressCountry' => 'DE',
+        ], $schema['address']);
+        $this->assertSame(1, substr_count($this->headHtml($response), '<script type="application/ld+json">'));
+        $this->assertStringNotContainsString($facility->name, $this->headHtml($response));
+    }
+
+    public function test_facility_structured_data_omits_missing_contact_fields(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+
+        $schema = $this->structuredData(
+            $this->get(route('facilities.show', [$city, $facility]))->assertOk(),
+        );
+
+        $this->assertArrayNotHasKey('telephone', $schema);
+        $this->assertArrayNotHasKey('email', $schema);
+    }
+
     public function test_facility_page_shows_email_without_requiring_a_phone(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
@@ -290,5 +335,19 @@ class DirectoryPagesTest extends TestCase
         $end = strpos($content, '</head>');
 
         return substr($content, $start, $end - $start + strlen('</head>'));
+    }
+
+    /** @return array<string, mixed> */
+    private function structuredData(TestResponse $response): array
+    {
+        $matched = preg_match(
+            '/<script type="application\/ld\+json">(.*?)<\/script>/s',
+            $this->headHtml($response),
+            $matches,
+        );
+
+        $this->assertSame(1, $matched);
+
+        return json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
     }
 }
