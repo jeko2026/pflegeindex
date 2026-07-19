@@ -33,3 +33,27 @@ Manuell geprüfte Kontaktdaten aus einer vorhandenen Datenbank sollten vor einem
 6. Vor der Freischaltung die echten Betreiberangaben in Impressum und Datenschutz ergänzen.
 
 Die Admin-Sitzung ist für HTTPS vorbereitet. Der öffentliche Bereich bindet keine externen Skripte, Fonts oder Karten ein; OpenStreetMap wird erst nach einem bewussten Klick geöffnet.
+
+## Production deployment
+
+Production deployments follow the reproducible procedure in
+[`docs/DEPLOYMENT_CHECKLIST.md`](docs/DEPLOYMENT_CHECKLIST.md). Before updating
+code, place the site in maintenance mode and create a verified copy of the
+SQLite database and `.env` outside the public document root.
+
+The standard Git/SSH update uses:
+
+```bash
+git pull --ff-only origin main
+composer install --no-dev --optimize-autoloader --no-interaction
+composer check-platform-reqs --no-dev
+php artisan migrate --force
+php artisan optimize:clear
+php artisan optimize
+```
+
+Do not upload the local `.env`, SQLite database, backups, logs, `public/hot` or
+development manifests with FileZilla. After deployment, complete
+[`docs/RELEASE_VERIFICATION.md`](docs/RELEASE_VERIFICATION.md). Routine checks,
+backup retention, dependency updates and recovery are documented in
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
