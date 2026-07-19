@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryCardViewModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class CityPageTest extends TestCase
@@ -24,15 +27,26 @@ class CityPageTest extends TestCase
 
         $response = $this->get($canonicalUrl)
             ->assertOk()
+            ->assertSee('<title>Pflegeheime in Potsdam – PflegeIndex</title>', false)
+            ->assertSee('<meta name="description" content="2 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.">', false)
             ->assertSee('<h1>Pflegeheime in Potsdam</h1>', false)
             ->assertSee($first->name)
             ->assertSee($second->name)
             ->assertDontSee($otherCity->name)
             ->assertDontSee($otherState->name)
+            ->assertSee('href="'.route('facilities.show', [$potsdam, $first]).'"', false)
+            ->assertSee('href="'.route('facilities.show', [$potsdam, $second]).'"', false)
             ->assertSee('<link rel="canonical" href="'.$canonicalUrl.'">', false)
+            ->assertSee('<meta property="og:title" content="Pflegeheime in Potsdam – PflegeIndex">', false)
+            ->assertSee('<meta property="og:description" content="2 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.">', false)
             ->assertSee('<meta property="og:url" content="'.$canonicalUrl.'">', false)
             ->assertSee('<strong>2</strong><span>Einrichtungen</span>', false)
             ->assertSee('<strong>2</strong><span>Einrichtungsarten</span>', false);
+
+        $paginator = $response->viewData('facilities');
+
+        $this->assertInstanceOf(LengthAwarePaginator::class, $paginator);
+        $this->assertInstanceOf(PflegeEntryCardViewModel::class, $paginator->items()[0]);
 
         $this->assertSame(url('/brandenburg/potsdam.html'), $canonicalUrl);
         $this->assertTrue(
@@ -104,11 +118,67 @@ class CityPageTest extends TestCase
             ->assertSee('Seite 1 von 2')
             ->assertSee(route('cities.show', [$city, 'page' => 2]), false);
 
-        $this->get(route('cities.show', [$city, 'page' => 2]))
+        $secondPage = $this->get(route('cities.show', [$city, 'page' => 2]))
             ->assertOk()
             ->assertSee('Einrichtung 25')
             ->assertDontSee('Einrichtung 01')
-            ->assertSee('Seite 2 von 2');
+            ->assertSee('Seite 2 von 2')
+            ->assertSee('<link rel="canonical" href="'.route('cities.show', $city).'">', false);
+
+        $this->assertSame(2, $secondPage->viewData('facilities')->currentPage());
+    }
+
+    public function test_city_facilities_with_equal_names_are_stably_sorted_by_id(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam', 'Brandenburg', 'brandenburg');
+        $first = $this->createFacility($city, 1, 'Alpha Pflege', 'Ambulante Pflege');
+        $second = $this->createFacility($city, 2, 'Alpha Pflege', 'Ambulante Pflege');
+        $third = $this->createFacility($city, 3, 'Beta Pflege', 'Ambulante Pflege');
+
+        $content = $this->get(route('cities.show', $city))->assertOk()->getContent();
+
+        $this->assertTrue(
+            strpos($content, $first->address) < strpos($content, $second->address)
+            && strpos($content, $second->address) < strpos($content, $third->address),
+        );
+    }
+
+    public function test_empty_city_and_invalid_page_are_handled_safely(): void
+    {
+        $emptyCity = $this->createCity('Leere Stadt', 'leere-stadt', 'Brandenburg', 'brandenburg');
+        $populatedCity = $this->createCity('Potsdam', 'potsdam', 'Brandenburg', 'brandenburg');
+        $this->createFacility($populatedCity, 1, 'Pflege Potsdam', 'Ambulante Pflege');
+
+        $emptyResponse = $this->get(route('cities.show', $emptyCity))
+            ->assertOk()
+            ->assertSee('<h1>Pflegeheime in Leere Stadt</h1>', false)
+            ->assertSee('<strong>0</strong><span>Einrichtungen</span>', false);
+
+        $this->assertSame(0, $emptyResponse->viewData('facilities')->total());
+
+        $invalidPageResponse = $this->get(route('cities.show', [$populatedCity, 'page' => 'invalid']))
+            ->assertOk()
+            ->assertSee('Pflege Potsdam');
+
+        $this->assertSame(1, $invalidPageResponse->viewData('facilities')->currentPage());
+    }
+
+    public function test_city_page_query_count_does_not_grow_with_facility_cards(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam', 'Brandenburg', 'brandenburg');
+
+        foreach (range(1, 10) as $number) {
+            $this->createFacility($city, $number, sprintf('Pflege %02d', $number), 'Ambulante Pflege');
+        }
+
+        $queryCount = 0;
+        DB::listen(function () use (&$queryCount): void {
+            $queryCount++;
+        });
+
+        $this->get(route('cities.show', $city))->assertOk();
+
+        $this->assertLessThanOrEqual(5, $queryCount, 'City page introduced too many SQL queries.');
     }
 
     public function test_sitemap_contains_only_public_brandenburg_city_urls(): void
