@@ -7,6 +7,8 @@ namespace Tests\Feature;
 use App\Models\City;
 use App\Models\Facility;
 use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
+use App\Platform\DirectoryCore\Domain\LocationScopeType;
 use App\Platform\DirectoryCore\Domain\PaginationOptions;
 use App\Platform\DirectoryCore\ReadModel\EntrySummary;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
@@ -14,6 +16,7 @@ use App\Platform\DirectoryCore\ReadModel\ListingResult;
 use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use Tests\TestCase;
 
 class PflegeEntryRepositoryTest extends TestCase
@@ -35,7 +38,8 @@ class PflegeEntryRepositoryTest extends TestCase
         $this->assertCount(1, $result->entries);
         $this->assertInstanceOf(EntrySummary::class, $result->entries[0]);
         $this->assertSame($alpha->name, $result->entries[0]->name);
-        $this->assertSame('potsdam', $result->entries[0]->locationIdentifier);
+        $this->assertSame(LocationScopeType::City, $result->entries[0]->locationScope?->type);
+        $this->assertSame('potsdam', $result->entries[0]->locationScope?->identifier);
         $this->assertSame('Potsdam', $result->entries[0]->locationName);
         $this->assertSame(2, $result->total);
         $this->assertSame(2, $result->lastPage());
@@ -77,7 +81,7 @@ class PflegeEntryRepositoryTest extends TestCase
             pagination: new PaginationOptions(1, 24),
             sort: EntrySort::Default,
             searchQuery: 'Park',
-            locationIdentifier: 'potsdam',
+            locationScope: LocationScope::city('potsdam'),
             categoryIdentifier: 'Ambulante Pflege',
         ));
 
@@ -108,6 +112,43 @@ class PflegeEntryRepositoryTest extends TestCase
         );
 
         $this->assertCount(1, $cityRelationQueries);
+    }
+
+    public function test_it_does_not_filter_when_location_scope_is_absent(): void
+    {
+        $potsdam = $this->createCity('Potsdam', 'potsdam');
+        $calau = $this->createCity('Calau', 'calau');
+        $this->createFacility($potsdam, 'Pflege Potsdam', 'Ambulante Pflege');
+        $this->createFacility($calau, 'Pflege Calau', 'Ambulante Pflege');
+
+        $result = $this->repository()->list(new ListingCriteria(
+            pagination: new PaginationOptions(1, 24),
+            sort: EntrySort::Default,
+        ));
+
+        $this->assertSame(2, $result->total);
+    }
+
+    public function test_it_rejects_district_location_scope_until_it_is_supported(): void
+    {
+        $this->assertUnsupportedLocationScope(LocationScope::district('potsdam-mittelmark'));
+    }
+
+    public function test_it_rejects_state_location_scope_until_it_is_supported(): void
+    {
+        $this->assertUnsupportedLocationScope(LocationScope::state('brandenburg'));
+    }
+
+    private function assertUnsupportedLocationScope(LocationScope $scope): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage("Location scope {$scope->type->name} is not supported");
+
+        $this->repository()->list(new ListingCriteria(
+            pagination: new PaginationOptions(1, 24),
+            sort: EntrySort::Default,
+            locationScope: $scope,
+        ));
     }
 
     private function repository(): PflegeEntryRepository

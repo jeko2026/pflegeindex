@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Platform\DirectoryCore\ReadModel;
 
 use App\Platform\DirectoryCore\Domain\EntryIdentifier;
+use App\Platform\DirectoryCore\Domain\LocationScope;
 
 final readonly class EntrySummary
 {
@@ -14,7 +15,7 @@ final readonly class EntrySummary
         public string $slug,
         public ?string $categoryIdentifier,
         public ?string $categoryLabel,
-        public ?string $locationIdentifier,
+        public ?LocationScope $locationScope,
         public ?string $locationName,
         public ?string $address,
         public ?string $postalCode,

@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Platform\DirectoryCore\ReadModel;
 
 use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
 use App\Platform\DirectoryCore\Domain\PaginationOptions;
 
 final readonly class ListingCriteria
 {
     public ?string $searchQuery;
-
-    public ?string $locationIdentifier;
 
     public ?string $categoryIdentifier;
 
@@ -19,11 +18,10 @@ final readonly class ListingCriteria
         public PaginationOptions $pagination,
         public EntrySort $sort,
         ?string $searchQuery = null,
-        ?string $locationIdentifier = null,
+        public ?LocationScope $locationScope = null,
         ?string $categoryIdentifier = null,
     ) {
         $this->searchQuery = $this->normalizeOptionalString($searchQuery);
-        $this->locationIdentifier = $this->normalizeOptionalString($locationIdentifier);
         $this->categoryIdentifier = $this->normalizeOptionalString($categoryIdentifier);
     }
 

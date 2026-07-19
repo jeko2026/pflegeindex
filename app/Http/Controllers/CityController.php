@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Platform\DirectoryCore\Application\ListEntries;
 use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
 use App\Platform\DirectoryCore\Domain\PaginationOptions;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
 use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
@@ -31,7 +32,7 @@ class CityController extends Controller
                 perPage: 24,
             ),
             sort: EntrySort::Default,
-            locationIdentifier: $city->slug,
+            locationScope: LocationScope::city($city->slug),
         ));
 
         $facilities = new LengthAwarePaginator(

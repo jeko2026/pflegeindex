@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Facility;
 use App\Platform\DirectoryCore\Application\ListEntries;
 use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
 use App\Platform\DirectoryCore\Domain\PaginationOptions;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
 use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
@@ -30,7 +31,7 @@ class DirectoryController extends Controller
             pagination: new PaginationOptions(page: $page, perPage: 24),
             sort: EntrySort::Default,
             searchQuery: $query,
-            locationIdentifier: $citySlug,
+            locationScope: $citySlug === '' ? null : LocationScope::city($citySlug),
             categoryIdentifier: $type,
         ));
 

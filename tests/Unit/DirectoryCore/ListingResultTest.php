@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\DirectoryCore;
 
 use App\Platform\DirectoryCore\Domain\EntryIdentifier;
+use App\Platform\DirectoryCore\Domain\LocationScope;
 use App\Platform\DirectoryCore\ReadModel\EntrySummary;
 use App\Platform\DirectoryCore\ReadModel\ListingResult;
 use InvalidArgumentException;
@@ -55,7 +56,7 @@ class ListingResultTest extends TestCase
             slug: 'beispiel-pflegezentrum',
             categoryIdentifier: 'Ambulante Pflege',
             categoryLabel: 'Ambulante Pflege',
-            locationIdentifier: 'potsdam',
+            locationScope: LocationScope::city('potsdam'),
             locationName: 'Potsdam',
             address: 'Musterstraße 1',
             postalCode: '14467',

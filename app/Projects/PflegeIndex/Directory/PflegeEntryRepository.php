@@ -8,10 +8,13 @@ use App\Models\Facility;
 use App\Platform\DirectoryCore\Contracts\EntryRepository;
 use App\Platform\DirectoryCore\Domain\EntryIdentifier;
 use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
+use App\Platform\DirectoryCore\Domain\LocationScopeType;
 use App\Platform\DirectoryCore\ReadModel\EntrySummary;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
 use App\Platform\DirectoryCore\ReadModel\ListingResult;
 use Illuminate\Database\Eloquent\Builder;
+use LogicException;
 
 final class PflegeEntryRepository implements EntryRepository
 {
@@ -34,11 +37,11 @@ final class PflegeEntryRepository implements EntryRepository
             ->when(
                 $criteria->categoryIdentifier !== null,
                 fn (Builder $builder) => $builder->where('facilities.type', $criteria->categoryIdentifier),
-            )
-            ->when(
-                $criteria->locationIdentifier !== null,
-                fn (Builder $builder) => $builder->where('cities.slug', $criteria->locationIdentifier),
             );
+
+        if ($criteria->locationScope !== null) {
+            $this->applyLocationScope($query, $criteria->locationScope);
+        }
 
         $this->applySort($query, $criteria->sort);
 
@@ -72,6 +75,17 @@ final class PflegeEntryRepository implements EntryRepository
         };
     }
 
+    private function applyLocationScope(Builder $query, LocationScope $scope): void
+    {
+        match ($scope->type) {
+            LocationScopeType::City => $query->where('cities.slug', $scope->identifier),
+            LocationScopeType::District,
+            LocationScopeType::State => throw new LogicException(
+                "Location scope {$scope->type->name} is not supported by PflegeEntryRepository.",
+            ),
+        };
+    }
+
     private function toEntrySummary(Facility $facility): EntrySummary
     {
         return new EntrySummary(
@@ -80,7 +94,7 @@ final class PflegeEntryRepository implements EntryRepository
             slug: $facility->slug,
             categoryIdentifier: $facility->type,
             categoryLabel: $facility->type,
-            locationIdentifier: $facility->city?->slug,
+            locationScope: $facility->city === null ? null : LocationScope::city($facility->city->slug),
             locationName: $facility->city?->name,
             address: $facility->address,
             postalCode: $facility->postal_code,

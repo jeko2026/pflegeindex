@@ -20,7 +20,7 @@ final class PflegeEntryPresenter
 
     public function present(EntrySummary $entry): PflegeEntryCardViewModel
     {
-        if ($entry->locationIdentifier === null || $entry->locationName === null) {
+        if ($entry->locationScope === null || $entry->locationName === null) {
             throw new UnexpectedValueException('A PflegeIndex directory entry requires a city.');
         }
 
@@ -30,12 +30,12 @@ final class PflegeEntryPresenter
             type: $entry->categoryLabel ?? $entry->categoryIdentifier ?? '',
             city: new PflegeEntryLocationViewModel(
                 name: $entry->locationName,
-                slug: $entry->locationIdentifier,
+                slug: $entry->locationScope->identifier,
             ),
             address: $entry->address,
             postal_code: $entry->postalCode,
             phone: $entry->telephone,
-            url: route('facilities.show', [$entry->locationIdentifier, $entry->slug]),
+            url: route('facilities.show', [$entry->locationScope->identifier, $entry->slug]),
         );
     }
 }
