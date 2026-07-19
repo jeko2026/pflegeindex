@@ -10,7 +10,7 @@ Phase 2 — Platform architecture
 
 ## Current iteration
 
-26.0 — Architecture Baseline v1.1
+Second Project Adapter — Platform Proof
 
 ## Current project
 
@@ -27,11 +27,19 @@ PflegeIndex
 - District and Brandenburg region facility listings use `ListEntries`.
 - Typed City, District and State location scopes.
 - Allowlist dependency protection for `app/Platform`.
-- DirectoryCore is independent of Laravel and ready for validation by a second directory adapter.
+- DirectoryCore is independent of Laravel.
+- PflegeIndex and the minimal FuneralIndex proof adapter implement the same `EntryRepository` Platform contract.
+
+## Multi-project architecture proof
+
+- `FuneralEntryRepository` resolves through the Laravel container and executes the existing `ListEntries` use case.
+- The proof adapter contains configuration only and has no models, persistence, routes, pages or business rules.
+- No global `EntryRepository` binding is registered, so PflegeIndex production resolution is unchanged.
+- DirectoryCore and its public API required no changes for the second adapter.
 
 ## Tests
 
-94 passed, 2351 assertions.
+97 passed, 2365 assertions.
 
 ## Known architecture debt
 
@@ -43,4 +51,4 @@ PflegeIndex
 
 ## Next goal
 
-Validate DirectoryCore with a second project adapter without changing the Platform API.
+Consolidate repeated PflegeIndex listing composition without moving Laravel concerns into DirectoryCore.
