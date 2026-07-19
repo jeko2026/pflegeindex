@@ -2,7 +2,7 @@
 
 ## Version
 
-`v0.4.0 Architecture Baseline`
+`Architecture Baseline v1.1`
 
 ## Current phase
 
@@ -10,7 +10,7 @@ Phase 2 — Platform architecture
 
 ## Current iteration
 
-Iteration 5 — Architecture Baseline and Dependency Protection
+26.0 — Architecture Baseline v1.1
 
 ## Current project
 
@@ -24,20 +24,23 @@ PflegeIndex
 - PflegeIndex `EntryRepository` adapter and presentation adapter.
 - `/pflegeheime.html` uses `ListEntries`.
 - `/brandenburg/{city}.html` uses `ListEntries`.
-- Automated dependency protection for `app/Platform`.
+- District and Brandenburg region facility listings use `ListEntries`.
+- Typed City, District and State location scopes.
+- Allowlist dependency protection for `app/Platform`.
+- DirectoryCore is independent of Laravel and ready for validation by a second directory adapter.
 
 ## Tests
 
-85 passed, 2307 assertions.
+94 passed, 2351 assertions.
 
 ## Known architecture debt
 
-- Region and district facility lists still query Eloquent directly.
 - GeoCore Eloquent models are not physically separated under `app/Platform`.
 - `GeoMunicipality::cities()` creates a reverse dependency on the PflegeIndex `City` model.
-- Location criteria currently express a city slug but not explicit district/state scopes.
+- Unmapped legacy cities still require a guarded State scope fallback.
+- Region city and type aggregates still use legacy `state_slug` queries.
 - Shared SEO and presentation abstractions have not been introduced.
 
 ## Next goal
 
-Design a typed, neutral location scope before migrating district or region lists.
+Validate DirectoryCore with a second project adapter without changing the Platform API.

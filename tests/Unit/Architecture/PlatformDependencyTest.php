@@ -8,62 +8,22 @@ use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use ReflectionClass;
+use ReflectionFunction;
 use SplFileInfo;
 
 final class PlatformDependencyTest extends TestCase
 {
-    /** @var array<string, string> */
-    private const FORBIDDEN_NAMESPACE_MARKERS = [
-        'Illuminate\\' => 'Laravel or Eloquent namespace',
-        'Laravel\\' => 'Laravel package namespace',
-        'App\\Models\\' => 'application model namespace',
-        'App\\Projects\\' => 'project namespace',
-    ];
+    private const PLATFORM_NAMESPACE = 'App\\Platform\\';
 
-    /** @var list<string> */
-    private const FORBIDDEN_HELPERS = [
-        '__',
-        'abort',
-        'abort_if',
-        'abort_unless',
-        'app',
-        'asset',
-        'auth',
-        'back',
-        'base_path',
-        'cache',
-        'collect',
-        'config',
-        'cookie',
-        'csrf_field',
-        'csrf_token',
-        'database_path',
-        'dispatch',
-        'encrypt',
-        'env',
-        'event',
-        'info',
-        'logger',
-        'now',
-        'old',
-        'public_path',
-        'redirect',
-        'report',
-        'request',
-        'resolve',
-        'resource_path',
-        'response',
-        'route',
-        'session',
-        'storage_path',
-        'to_route',
-        'trans',
-        'url',
-        'validator',
-        'view',
-    ];
-
-    public function test_platform_does_not_depend_on_laravel_eloquent_or_projects(): void
+    /**
+     * Protects the inward-only Platform boundary.
+     *
+     * Platform code may depend only on other App\Platform symbols and PHP's
+     * built-in classes or functions. Laravel, project code, application models
+     * and third-party packages must depend on Platform, never the reverse.
+     */
+    public function test_platform_uses_only_platform_or_builtin_php_dependencies(): void
     {
         $platformPath = dirname(__DIR__, 3).'/app/Platform';
 
@@ -80,30 +40,33 @@ final class PlatformDependencyTest extends TestCase
                 continue;
             }
 
-            foreach (self::FORBIDDEN_NAMESPACE_MARKERS as $marker => $description) {
-                $this->recordStringViolations($violations, $file, $source, $marker, $description);
+            foreach ($this->dependencies($source) as [$dependency, $line]) {
+                if (! $this->isAllowedDependency($dependency)) {
+                    $violations[] = $this->violation($file, $line, 'dependency', $dependency);
+                }
             }
 
-            $this->recordPatternViolations(
-                $violations,
-                $file,
-                $source,
-                '/(?<![A-Za-z0-9_\\\\])\\\\?(?:Route|DB|Blade)::/',
-                'Laravel facade',
-            );
-            $this->recordPatternViolations(
-                $violations,
-                $file,
-                $source,
-                '/(?<!->)(?<!::)(?<![A-Za-z0-9_\\\\])\\\\?(?:'.implode('|', self::FORBIDDEN_HELPERS).')\s*\(/',
-                'Laravel helper',
-            );
+            foreach ($this->functionCalls($source) as [$function, $line]) {
+                if (! $this->isBuiltinFunction($function)) {
+                    $violations[] = $this->violation($file, $line, 'function', $function);
+                }
+            }
         }
 
         $this->assertSame([], $violations, implode(PHP_EOL, [
-            'Platform dependency violations found:',
+            'Platform allowlist violations found:',
             ...$violations,
         ]));
+    }
+
+    public function test_allowlist_rule_accepts_only_platform_and_builtin_php_symbols(): void
+    {
+        $this->assertTrue($this->isAllowedDependency('App\\Platform\\DirectoryCore\\Domain\\EntrySort'));
+        $this->assertTrue($this->isAllowedDependency('InvalidArgumentException'));
+        $this->assertFalse($this->isAllowedDependency('App\\Models\\Facility'));
+        $this->assertFalse($this->isAllowedDependency('Vendor\\Package\\Client'));
+        $this->assertTrue($this->isBuiltinFunction('trim'));
+        $this->assertFalse($this->isBuiltinFunction('route'));
     }
 
     /** @return list<SplFileInfo> */
@@ -124,52 +87,109 @@ final class PlatformDependencyTest extends TestCase
         return $files;
     }
 
-    /** @param list<string> $violations */
-    private function recordStringViolations(
-        array &$violations,
-        SplFileInfo $file,
-        string $source,
-        string $marker,
-        string $description,
-    ): void {
-        $offset = 0;
+    /** @return list<array{string, int}> */
+    private function dependencies(string $source): array
+    {
+        $dependencies = [];
+        $braceDepth = 0;
+        $tokens = $this->significantTokens($source);
 
-        while (($position = strpos($source, $marker, $offset)) !== false) {
-            $violations[] = $this->violation($file, $source, $position, $description, $marker);
-            $offset = $position + strlen($marker);
+        foreach ($tokens as $index => $token) {
+            if ($token === '{') {
+                $braceDepth++;
+
+                continue;
+            }
+
+            if ($token === '}') {
+                $braceDepth--;
+
+                continue;
+            }
+
+            if (! is_array($token)) {
+                continue;
+            }
+
+            if (in_array($token[0], [T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_NAME_RELATIVE], true)) {
+                $dependencies[] = [$token[1], $token[2]];
+            }
+
+            if ($token[0] === T_USE && $braceDepth === 0) {
+                $import = $tokens[$index + 1] ?? null;
+
+                if (is_array($import) && $import[0] === T_STRING) {
+                    $dependencies[] = [$import[1], $import[2]];
+                }
+            }
         }
+
+        return $dependencies;
     }
 
-    /** @param list<string> $violations */
-    private function recordPatternViolations(
-        array &$violations,
-        SplFileInfo $file,
-        string $source,
-        string $pattern,
-        string $description,
-    ): void {
-        preg_match_all($pattern, $source, $matches, PREG_OFFSET_CAPTURE);
+    private function isAllowedDependency(string $dependency): bool
+    {
+        $dependency = ltrim($dependency, '\\');
 
-        foreach ($matches[0] as [$match, $position]) {
-            $violations[] = $this->violation($file, $source, $position, $description, $match);
+        if (str_starts_with($dependency, 'namespace\\') || str_starts_with($dependency, self::PLATFORM_NAMESPACE)) {
+            return true;
         }
+
+        if (! class_exists($dependency) && ! interface_exists($dependency) && ! trait_exists($dependency)) {
+            return false;
+        }
+
+        return (new ReflectionClass($dependency))->isInternal();
     }
 
-    private function violation(
-        SplFileInfo $file,
-        string $source,
-        int $position,
-        string $description,
-        string $match,
-    ): string {
-        $line = substr_count(substr($source, 0, $position), "\n") + 1;
+    /** @return list<array{string, int}> */
+    private function functionCalls(string $source): array
+    {
+        $tokens = $this->significantTokens($source);
+        $calls = [];
 
+        foreach ($tokens as $index => $token) {
+            if (! is_array($token) || $token[0] !== T_STRING) {
+                continue;
+            }
+
+            $previous = $tokens[$index - 1] ?? null;
+            $previousType = is_array($previous) ? $previous[0] : $previous;
+            $next = $tokens[$index + 1] ?? null;
+
+            if ($next !== '(' || in_array($previousType, [T_FUNCTION, T_NEW, T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON], true)) {
+                continue;
+            }
+
+            $calls[] = [$token[1], $token[2]];
+        }
+
+        return $calls;
+    }
+
+    /** @return list<array{int, string, int}|string> */
+    private function significantTokens(string $source): array
+    {
+        return array_values(array_filter(
+            token_get_all($source),
+            fn (array|string $token): bool => ! is_array($token)
+                || ! in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true),
+        ));
+    }
+
+    private function isBuiltinFunction(string $function): bool
+    {
+        return function_exists($function) && (new ReflectionFunction($function))->isInternal();
+    }
+
+    private function violation(SplFileInfo $file, int $line, string $type, string $symbol): string
+    {
         return sprintf(
-            '%s:%d: %s `%s`',
+            '%s:%d: disallowed %s `%s`',
             $this->relativePath($file->getPathname()),
             $line,
-            $description,
-            trim($match),
+            $type,
+            $symbol,
         );
     }
 
