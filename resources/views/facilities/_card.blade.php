@@ -3,7 +3,7 @@
         <span class="type-badge">{{ $facility->type }}</span>
         <span class="source-badge">Offizieller Datensatz</span>
     </div>
-    <h2><a href="{{ route('facilities.show', [$facility->city, $facility]) }}">{{ $facility->name }}</a></h2>
+    <h2><a href="{{ $facility->url ?? route('facilities.show', [$facility->city, $facility]) }}">{{ $facility->name }}</a></h2>
     <p class="address">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg>
         <span>{{ $facility->address }}, {{ $facility->postal_code }} {{ $facility->city->name }}</span>
@@ -21,6 +21,6 @@
     @endif
     <div class="result-card__footer">
         <span>Quelle: LASV Brandenburg · Stand 31.12.2025</span>
-        <a href="{{ route('facilities.show', [$facility->city, $facility]) }}">Profil ansehen <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></a>
+        <a href="{{ $facility->url ?? route('facilities.show', [$facility->city, $facility]) }}">Profil ansehen <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></a>
     </div>
 </article>

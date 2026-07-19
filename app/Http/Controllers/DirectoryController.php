@@ -4,37 +4,44 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Facility;
-use Illuminate\Database\Eloquent\Builder;
+use App\Platform\DirectoryCore\Application\ListEntries;
+use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\PaginationOptions;
+use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
+use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
+use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryPresenter;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class DirectoryController extends Controller
 {
-    public function index(Request $request): View
-    {
+    public function index(
+        Request $request,
+        PflegeEntryRepository $repository,
+        PflegeEntryPresenter $presenter,
+    ): View {
         $query = trim((string) $request->query('q', ''));
         $type = trim((string) $request->query('type', ''));
         $citySlug = trim((string) $request->query('city', ''));
+        $page = max(1, $request->integer('page', 1));
 
-        $facilities = Facility::query()
-            ->select('facilities.*')
-            ->join('cities', 'cities.id', '=', 'facilities.city_id')
-            ->with('city')
-            ->when($query !== '', function (Builder $builder) use ($query): void {
-                $builder->where(function (Builder $search) use ($query): void {
-                    $like = "%{$query}%";
-                    $search->where('facilities.name', 'like', $like)
-                        ->orWhere('facilities.address', 'like', $like)
-                        ->orWhere('facilities.postal_code', 'like', $like)
-                        ->orWhere('cities.name', 'like', $like);
-                });
-            })
-            ->when($type !== '', fn (Builder $builder) => $builder->where('facilities.type', $type))
-            ->when($citySlug !== '', fn (Builder $builder) => $builder->where('cities.slug', $citySlug))
-            ->orderBy('cities.name')
-            ->orderBy('facilities.name')
-            ->paginate(24)
-            ->withQueryString();
+        $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
+            pagination: new PaginationOptions(page: $page, perPage: 24),
+            sort: EntrySort::Default,
+            searchQuery: $query,
+            locationIdentifier: $citySlug,
+            categoryIdentifier: $type,
+        ));
+
+        $facilities = new LengthAwarePaginator(
+            items: $presenter->presentMany($listingResult->entries),
+            total: $listingResult->total,
+            perPage: $listingResult->perPage,
+            currentPage: $listingResult->currentPage,
+            options: ['path' => $request->url()],
+        );
+        $facilities->withQueryString();
 
         return view('directory.index', [
             'facilities' => $facilities,
