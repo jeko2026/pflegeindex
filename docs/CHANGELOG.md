@@ -6,6 +6,37 @@ The project follows Semantic Versioning.
 
 ---
 
+## [1.0.0-rc.1] - 2026-07-19
+
+PflegeIndex v1.0 Release Candidate baseline.
+
+### Added
+- Added the framework-independent DirectoryCore Platform API.
+- Added typed City, District and State location scopes.
+- Added official Brandenburg GeoCore staging import and city mapping.
+- Added a minimal FuneralIndex adapter as proof of the unchanged multi-project API.
+- Added allowlist architecture tests for the Platform dependency boundary.
+
+### Changed
+- Migrated directory, Brandenburg State, District and City facility listings to `ListEntries`.
+- Standardized project-specific repository and presentation adapters without changing public URLs or HTML.
+- Froze the documented Platform API for the v1.0 Release Candidate.
+
+### Public foundation
+- State, District, City and facility pages.
+- Search, filtering, stable sorting and pagination.
+- Canonical metadata, Open Graph, JSON-LD, breadcrumbs, robots and XML Sitemap.
+- Administrative contact verification and protected import behavior.
+
+### Tests
+- 97 tests passed.
+- 2365 assertions.
+
+### Known limitations
+- The accepted v1.0 constraints are documented in `KNOWN_LIMITATIONS.md`.
+
+---
+
 ## [0.4.0] - 2026-07-19
 
 ### Added
@@ -86,8 +117,8 @@ The project follows Semantic Versioning.
 
 ## Project Status
 
-**Current Version:** 0.4.0
+**Current Version:** 1.0.0-rc.1
 
-**Status:** Active Development
+**Status:** Release Candidate — Production Preparation
 
 **Last Update:** 2026-07-19

@@ -2,15 +2,15 @@
 
 ## Version
 
-`Architecture Baseline v1.1`
+`PflegeIndex v1.0 Release Candidate (v1.0.0-rc.1)`
 
 ## Current phase
 
-Phase 2 — Platform architecture
+Release Candidate — Production preparation
 
 ## Current iteration
 
-Platform Freeze Audit — Release Candidate preparation
+Release baseline and documentation freeze
 
 ## Current project
 
@@ -39,9 +39,8 @@ PflegeIndex
 
 ## Platform API freeze
 
-Status: **freeze candidate**. The API is stable enough for the PflegeIndex v1.0
-Release Candidate, but the freeze becomes final only after the decisions below
-are recorded for the RC.
+Status: **frozen for the PflegeIndex v1.0 Release Candidate**. Breaking changes
+require an explicit future major Platform version.
 
 The supported Platform API consists of:
 
@@ -55,12 +54,10 @@ All other implementation state in DirectoryCore is private. No currently public
 class can be made internal without removing a type required by a repository
 adapter or a Platform consumer.
 
-Before the final freeze, explicitly decide whether the raw `LocationScope`
-constructor remains supported in addition to its typed factories. Its dual use
-as listing criteria and entry location metadata should be revisited only in a
-future major API version. Dormant convenience operations and enum cases remain
-supported for compatibility; they are not a reason to expand the API before
-v1.0.
+The raw `LocationScope` constructor remains supported in v1.0 together with its
+typed factories. Its dual use as listing criteria and entry location metadata
+may be revisited only in a future major API version. Dormant convenience
+operations and enum cases remain supported for compatibility.
 
 ## Tests
 
@@ -84,22 +81,18 @@ v1.0.
 | --- | --- | --- |
 | Architecture | Ready | Dependency direction is protected by allowlist architecture tests. |
 | Tests | Ready | Architecture and application coverage form the current release baseline. |
-| Documentation | Conditional | Platform status is current; release version and changelog still need final RC synchronization. |
-| Platform API | Freeze candidate | Public surface is identified; the `LocationScope` constructor decision remains to be recorded. |
+| Documentation | Ready | Release notes, changelog, known limitations and version status form the RC baseline. |
+| Platform API | Frozen for RC | The supported public surface, including the `LocationScope` constructor, is recorded. |
 | SEO Foundation | Ready | Existing public SEO behavior remains covered and unchanged. |
 | DirectoryCore | Ready | Framework-independent API is used by all public PflegeIndex listings. |
 | Multi-project support | Proven | A second adapter uses the unchanged Platform API; production project bootstrapping is intentionally out of scope. |
 
-Not yet ready for the Release Candidate:
+Not yet ready for production release:
 
-- final API freeze decision and release-version declaration;
-- release notes and changelog synchronization;
-- explicit acceptance of the GeoCore reverse dependency and legacy State
-  fallback as v1.0 technical debt;
 - production deployment, backup and rollback checklist verification.
 
 ## Next goal
 
-Finalize the Platform API freeze decision, synchronize release documentation,
-and run the Release Candidate verification checklist without expanding
-DirectoryCore.
+Complete the production deployment, backup, rollback and post-deployment
+verification checklist without expanding DirectoryCore or changing public
+behavior.
