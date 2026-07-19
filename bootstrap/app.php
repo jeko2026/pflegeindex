@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\CreateAdmin;
+use App\Console\Commands\ImportBrandenburgGeoCore;
 use App\Console\Commands\ImportContactSuggestions;
 use App\Console\Commands\ImportFacilities;
 use App\Http\Middleware\EnsureAdmin;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         CreateAdmin::class,
         ImportContactSuggestions::class,
+        ImportBrandenburgGeoCore::class,
         ImportFacilities::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
