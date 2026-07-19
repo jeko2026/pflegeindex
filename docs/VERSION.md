@@ -1,13 +1,9 @@
-Directory Platform
+# Directory Platform Version
 
-Current Version
+Current version: `v0.4.0 Architecture Baseline`
 
-v0.1 Foundation
+Status: Active Development
 
-Status
+Last update: 2026-07-19
 
-Active Development
-
-Last Update
-
-2026-07-19
+This version records the first production use of DirectoryCore on the directory and Brandenburg city pages and adds automated protection of the Platform dependency boundary.

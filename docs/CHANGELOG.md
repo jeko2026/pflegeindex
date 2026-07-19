@@ -6,6 +6,29 @@ The project follows Semantic Versioning.
 
 ---
 
+## [0.4.0] - 2026-07-19
+
+### Added
+- Added the PflegeIndex presentation adapter for DirectoryCore entry cards.
+- Added automated dependency protection for PHP files inside `app/Platform`.
+
+### Changed
+- Migrated `/pflegeheime.html` to `ListEntries` through `PflegeEntryRepository`.
+- Migrated `/brandenburg/{city}.html` to the same DirectoryCore listing flow.
+- Rebuilt Laravel pagination outside DirectoryCore while preserving public HTML, URLs, filters and SEO.
+- Updated the architecture baseline and roadmap to match the implemented code.
+
+### Architecture
+- DirectoryCore remains independent of Laravel, Eloquent and PflegeIndex.
+- GeoCore remains implemented through Eloquent models and Brandenburg-specific import tooling.
+- The reverse `GeoMunicipality::cities()` dependency is documented as known debt and is not changed in this version.
+
+### Tests
+- 85 tests passed.
+- 2307 assertions.
+
+---
+
 ## [0.3.0] - 2026-07-19
 
 ### Added
@@ -63,7 +86,7 @@ The project follows Semantic Versioning.
 
 ## Project Status
 
-**Current Version:** 0.3.0
+**Current Version:** 0.4.0
 
 **Status:** Active Development
 

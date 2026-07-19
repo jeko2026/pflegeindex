@@ -458,7 +458,11 @@ docs/decisions/
 
 На текущем этапе реализуется фундамент платформы.
 
-Фундамент `DirectoryCore` реализован как независимый слой контрактов, value objects и read models. `Facility` остаётся моделью проекта PflegeIndex, `EntrySummary` используется только как read model списка, а `EntryRepository` реализуется проектными адаптерами. Production-контроллеры и Blade-шаблоны на новый слой пока не переведены.
+Фундамент `DirectoryCore` реализован как независимый слой контрактов, value objects и read models. `Facility` остаётся моделью проекта PflegeIndex, `EntrySummary` используется только как read model списка, а `EntryRepository` реализуется проектными адаптерами.
+
+Production-страницы `/pflegeheime.html` и `/brandenburg/{city}.html` получают основные списки через `ListEntries`, `PflegeEntryRepository` и project-specific presenter. Laravel paginator, URL generation, Blade и SEO остаются за пределами DirectoryCore. Region и district facility lists пока используют прямые Eloquent-запросы.
+
+PHP-файлы внутри `app/Platform` защищены автоматическим dependency test. В Platform запрещены зависимости на Laravel/Illuminate, Eloquent, `App\Models`, `App\Projects`, Laravel facades и helpers.
 
 Уже создана базовая географическая иерархия:
 
@@ -468,6 +472,8 @@ State
 → City
 → Facility
 ```
+
+GeoCore database foundation использует отдельные Country, State, District и Municipality records с AGS. Его Eloquent-модели и Brandenburg importer пока остаются infrastructure/application кодом Laravel, а не изолированным Platform-модулем. Обратная relation `GeoMunicipality::cities()` на project-модель `City` является известным архитектурным долгом и должна устраняться только в отдельной GeoCore-итерации.
 
 PflegeIndex используется как первый проект для проверки архитектуры.
 
