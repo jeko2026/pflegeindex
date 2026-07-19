@@ -3,15 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
-use App\Models\Facility;
 use App\Models\GeoDistrict;
+use App\Platform\DirectoryCore\Application\ListEntries;
+use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
+use App\Platform\DirectoryCore\Domain\PaginationOptions;
+use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
+use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
+use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryPresenter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class DistrictController extends Controller
 {
-    public function show(string $districtSlug): View
-    {
+    public function show(
+        string $districtSlug,
+        Request $request,
+        PflegeEntryRepository $repository,
+        PflegeEntryPresenter $presenter,
+    ): View {
         $district = GeoDistrict::query()
             ->where('slug', $districtSlug)
             ->whereIn('type', ['landkreis', 'kreisfreie_stadt'])
@@ -38,16 +50,22 @@ class DistrictController extends Controller
             ->filter(fn (City $city): bool => $city->facilities_count > 0)
             ->values();
 
-        $facilities = Facility::query()
-            ->select('facilities.*')
-            ->join('cities', 'cities.id', '=', 'facilities.city_id')
-            ->join('geo_municipalities', 'geo_municipalities.id', '=', 'cities.geo_municipality_id')
-            ->where('geo_municipalities.district_id', $district->id)
-            ->with('city')
-            ->orderBy('cities.name')
-            ->orderBy('facilities.name')
-            ->orderBy('facilities.id')
-            ->paginate(24);
+        $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
+            pagination: new PaginationOptions(
+                page: max(1, $request->integer('page', 1)),
+                perPage: 24,
+            ),
+            sort: EntrySort::Default,
+            locationScope: LocationScope::district($district->ags),
+        ));
+
+        $facilities = new LengthAwarePaginator(
+            items: $presenter->presentMany($listingResult->entries),
+            total: $listingResult->total,
+            perPage: $listingResult->perPage,
+            currentPage: $listingResult->currentPage,
+            options: ['path' => $request->url()],
+        );
 
         return view('districts.show', [
             'district' => $district,

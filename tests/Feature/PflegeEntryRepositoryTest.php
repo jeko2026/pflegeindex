@@ -6,6 +6,10 @@ namespace Tests\Feature;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Models\GeoCountry;
+use App\Models\GeoDistrict;
+use App\Models\GeoMunicipality;
+use App\Models\GeoState;
 use App\Platform\DirectoryCore\Domain\EntrySort;
 use App\Platform\DirectoryCore\Domain\LocationScope;
 use App\Platform\DirectoryCore\Domain\LocationScopeType;
@@ -129,9 +133,56 @@ class PflegeEntryRepositoryTest extends TestCase
         $this->assertSame(2, $result->total);
     }
 
-    public function test_it_rejects_district_location_scope_until_it_is_supported(): void
+    public function test_it_filters_district_scope_through_real_geocore_relations(): void
     {
-        $this->assertUnsupportedLocationScope(LocationScope::district('potsdam-mittelmark'));
+        $targetDistrict = $this->createDistrict('12061', 'dahme-spreewald');
+        $otherDistrict = $this->createDistrict('12065', 'oberhavel');
+        $targetCity = $this->createLinkedCity($targetDistrict, 'Lübben', 'luebben');
+        $otherCity = $this->createLinkedCity($otherDistrict, 'Oranienburg', 'oranienburg');
+        $unlinkedCity = $this->createCity('Ortsteil Test', 'ortsteil-test');
+        $matching = $this->createFacility($targetCity, 'Pflege Lübben', 'Ambulante Pflege');
+        $otherDistrictFacility = $this->createFacility($otherCity, 'Pflege Oberhavel', 'Ambulante Pflege');
+        $unlinkedFacility = $this->createFacility($unlinkedCity, 'Pflege Ortsteil', 'Ambulante Pflege');
+
+        $result = $this->repository()->list(new ListingCriteria(
+            pagination: new PaginationOptions(1, 24),
+            sort: EntrySort::Default,
+            locationScope: LocationScope::district($targetDistrict->ags),
+        ));
+
+        $this->assertSame(1, $result->total);
+        $this->assertSame([$matching->name], array_column($result->entries, 'name'));
+        $this->assertNotContains($otherDistrictFacility->name, array_column($result->entries, 'name'));
+        $this->assertNotContains($unlinkedFacility->name, array_column($result->entries, 'name'));
+    }
+
+    public function test_district_scope_preserves_default_sort_and_pagination(): void
+    {
+        $district = $this->createDistrict('12060', 'barnim');
+        $alphaCity = $this->createLinkedCity($district, 'Ahrensfelde', 'ahrensfelde');
+        $betaCity = $this->createLinkedCity($district, 'Bernau', 'bernau');
+
+        foreach (range(1, 24) as $number) {
+            $this->createFacility($alphaCity, sprintf('Ahrensfelde Pflege %02d', $number), 'Ambulante Pflege');
+        }
+
+        $last = $this->createFacility($betaCity, 'Bernau Pflege 01', 'Ambulante Pflege');
+        $criteria = fn (int $page): ListingCriteria => new ListingCriteria(
+            pagination: new PaginationOptions($page, 24),
+            sort: EntrySort::Default,
+            locationScope: LocationScope::district($district->ags),
+        );
+
+        $firstPage = $this->repository()->list($criteria(1));
+        $secondPage = $this->repository()->list($criteria(2));
+
+        $this->assertSame(25, $firstPage->total);
+        $this->assertCount(24, $firstPage->entries);
+        $this->assertSame('Ahrensfelde Pflege 01', $firstPage->entries[0]->name);
+        $this->assertSame('Ahrensfelde Pflege 24', $firstPage->entries[23]->name);
+        $this->assertTrue($firstPage->hasNextPage());
+        $this->assertCount(1, $secondPage->entries);
+        $this->assertSame($last->name, $secondPage->entries[0]->name);
     }
 
     public function test_it_rejects_state_location_scope_until_it_is_supported(): void
@@ -163,6 +214,51 @@ class PflegeEntryRepositoryTest extends TestCase
             'slug' => $slug,
             'state' => 'Brandenburg',
             'state_slug' => 'brandenburg',
+        ]);
+    }
+
+    private function createDistrict(string $ags, string $slug): GeoDistrict
+    {
+        $country = GeoCountry::query()->firstOrCreate(
+            ['iso2' => 'DE'],
+            ['iso3' => 'DEU', 'name' => 'Deutschland', 'slug' => 'deutschland'],
+        );
+        $state = GeoState::query()->firstOrCreate(
+            ['country_id' => $country->id, 'ags' => '12'],
+            ['name' => 'Brandenburg', 'slug' => 'brandenburg'],
+        );
+
+        return GeoDistrict::create([
+            'state_id' => $state->id,
+            'ags' => $ags,
+            'name' => str_replace('-', ' ', ucfirst($slug)),
+            'slug' => $slug,
+            'type' => 'landkreis',
+        ]);
+    }
+
+    private function createLinkedCity(GeoDistrict $district, string $name, string $slug): City
+    {
+        $sequence = GeoMunicipality::query()->count() + 1;
+        $municipality = GeoMunicipality::create([
+            'district_id' => $district->id,
+            'ags' => str_pad((string) (12000000 + $sequence), 8, '0', STR_PAD_LEFT),
+            'name' => $name,
+            'normalized_name' => $slug,
+            'slug' => $slug,
+            'source_name' => 'GeoCore Test',
+        ]);
+
+        return City::create([
+            'name' => $name,
+            'slug' => $slug,
+            'state' => 'Brandenburg',
+            'state_slug' => 'brandenburg',
+            'geo_municipality_id' => $municipality->id,
+            'geo_match_status' => 'exact',
+            'geo_match_method' => 'exact_official_name',
+            'geo_match_confidence' => 'high',
+            'geo_requires_manual_review' => false,
         ]);
     }
 

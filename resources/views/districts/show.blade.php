@@ -15,7 +15,7 @@
         '@type' => 'ListItem',
         'position' => ($facilities->firstItem() ?? 1) + $index,
         'name' => $facility->name,
-        'url' => route('facilities.show', [$facility->city, $facility]),
+        'url' => $facility->url,
     ])->values()->all();
     $schema = [
         '@context' => 'https://schema.org',

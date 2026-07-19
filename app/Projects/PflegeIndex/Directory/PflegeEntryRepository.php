@@ -79,7 +79,15 @@ final class PflegeEntryRepository implements EntryRepository
     {
         match ($scope->type) {
             LocationScopeType::City => $query->where('cities.slug', $scope->identifier),
-            LocationScopeType::District,
+            LocationScopeType::District => $query
+                ->join(
+                    'geo_municipalities',
+                    'geo_municipalities.id',
+                    '=',
+                    'cities.geo_municipality_id',
+                )
+                ->join('geo_districts', 'geo_districts.id', '=', 'geo_municipalities.district_id')
+                ->where('geo_districts.ags', $scope->identifier),
             LocationScopeType::State => throw new LogicException(
                 "Location scope {$scope->type->name} is not supported by PflegeEntryRepository.",
             ),

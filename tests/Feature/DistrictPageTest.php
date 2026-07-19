@@ -8,7 +8,9 @@ use App\Models\GeoCountry;
 use App\Models\GeoDistrict;
 use App\Models\GeoMunicipality;
 use App\Models\GeoState;
+use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryCardViewModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -62,6 +64,12 @@ class DistrictPageTest extends TestCase
         $canonical = route('districts.show', $district->slug);
         $response = $this->get($canonical)->assertOk();
         $content = $response->getContent();
+        $facilities = $response->viewData('facilities');
+        $alphaUrl = route('facilities.show', [$lübben, $alpha]);
+        $betaUrl = route('facilities.show', [$wildau, $beta]);
+
+        $this->assertInstanceOf(LengthAwarePaginator::class, $facilities);
+        $this->assertInstanceOf(PflegeEntryCardViewModel::class, $facilities->items()[0]);
 
         $response
             ->assertSee('<h1>Pflegeheime im Landkreis Dahme-Spreewald</h1>', false)
@@ -76,6 +84,8 @@ class DistrictPageTest extends TestCase
             ->assertSee(route('cities.show', $wildau), false)
             ->assertSee($alpha->name)
             ->assertSee($beta->name)
+            ->assertSee('href="'.$alphaUrl.'"', false)
+            ->assertSee('href="'.$betaUrl.'"', false)
             ->assertDontSee($emptyCity->name)
             ->assertDontSee($manualCity->name)
             ->assertDontSee($manualFacility->name)
@@ -99,6 +109,10 @@ class DistrictPageTest extends TestCase
         $this->assertSame('AdministrativeArea', $collectionPage['about']['@type']);
         $this->assertSame($district->ags, $collectionPage['about']['identifier']);
         $this->assertCount(2, $collectionPage['mainEntity']['itemListElement']);
+        $this->assertSame(
+            [$alphaUrl, $betaUrl],
+            array_column($collectionPage['mainEntity']['itemListElement'], 'url'),
+        );
 
         $breadcrumbs = $this->jsonLdOfType($content, 'BreadcrumbList');
         $this->assertSame(['Startseite', 'Brandenburg', 'Landkreis Dahme-Spreewald'], array_column($breadcrumbs['itemListElement'], 'name'));
