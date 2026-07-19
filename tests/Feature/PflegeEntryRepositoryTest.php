@@ -20,7 +20,6 @@ use App\Platform\DirectoryCore\ReadModel\ListingResult;
 use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use LogicException;
 use Tests\TestCase;
 
 class PflegeEntryRepositoryTest extends TestCase
@@ -185,21 +184,44 @@ class PflegeEntryRepositoryTest extends TestCase
         $this->assertSame($last->name, $secondPage->entries[0]->name);
     }
 
-    public function test_it_rejects_state_location_scope_until_it_is_supported(): void
+    public function test_it_filters_state_scope_by_official_geocore_relation_with_unmapped_legacy_fallback(): void
     {
-        $this->assertUnsupportedLocationScope(LocationScope::state('brandenburg'));
-    }
+        $brandenburg = $this->createState('12', 'Brandenburg', 'brandenburg');
+        $saxony = $this->createState('14', 'Sachsen', 'sachsen');
+        $brandenburgDistrict = $this->createDistrict('12054', 'potsdam', $brandenburg);
+        $saxonyDistrict = $this->createDistrict('14612', 'dresden', $saxony);
+        $officialBrandenburg = $this->createLinkedCity(
+            $brandenburgDistrict,
+            'Cottbus',
+            'cottbus',
+        );
+        $officialSaxony = $this->createLinkedCity(
+            $saxonyDistrict,
+            'Dresden',
+            'dresden',
+            'Sachsen',
+            'sachsen',
+        );
+        $legacyBrandenburg = $this->createCity('Potsdam', 'potsdam');
+        $legacySaxony = $this->createCity('Leipzig', 'leipzig', 'Sachsen', 'sachsen');
+        $cottbusFacility = $this->createFacility($officialBrandenburg, 'Pflege Cottbus', 'Ambulante Pflege');
+        $potsdamFacility = $this->createFacility($legacyBrandenburg, 'Pflege Potsdam', 'Ambulante Pflege');
+        $dresdenFacility = $this->createFacility($officialSaxony, 'Pflege Dresden', 'Ambulante Pflege');
+        $leipzigFacility = $this->createFacility($legacySaxony, 'Pflege Leipzig', 'Ambulante Pflege');
 
-    private function assertUnsupportedLocationScope(LocationScope $scope): void
-    {
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage("Location scope {$scope->type->name} is not supported");
-
-        $this->repository()->list(new ListingCriteria(
+        $result = $this->repository()->list(new ListingCriteria(
             pagination: new PaginationOptions(1, 24),
             sort: EntrySort::Default,
-            locationScope: $scope,
+            locationScope: LocationScope::state($brandenburg->slug),
         ));
+
+        $this->assertSame(2, $result->total);
+        $this->assertSame(
+            [$cottbusFacility->name, $potsdamFacility->name],
+            array_column($result->entries, 'name'),
+        );
+        $this->assertNotContains($dresdenFacility->name, array_column($result->entries, 'name'));
+        $this->assertNotContains($leipzigFacility->name, array_column($result->entries, 'name'));
     }
 
     private function repository(): PflegeEntryRepository
@@ -207,26 +229,39 @@ class PflegeEntryRepositoryTest extends TestCase
         return new PflegeEntryRepository;
     }
 
-    private function createCity(string $name, string $slug): City
-    {
+    private function createCity(
+        string $name,
+        string $slug,
+        string $state = 'Brandenburg',
+        string $stateSlug = 'brandenburg',
+    ): City {
         return City::create([
             'name' => $name,
             'slug' => $slug,
-            'state' => 'Brandenburg',
-            'state_slug' => 'brandenburg',
+            'state' => $state,
+            'state_slug' => $stateSlug,
         ]);
     }
 
-    private function createDistrict(string $ags, string $slug): GeoDistrict
+    private function createState(string $ags, string $name, string $slug): GeoState
     {
         $country = GeoCountry::query()->firstOrCreate(
             ['iso2' => 'DE'],
             ['iso3' => 'DEU', 'name' => 'Deutschland', 'slug' => 'deutschland'],
         );
-        $state = GeoState::query()->firstOrCreate(
-            ['country_id' => $country->id, 'ags' => '12'],
-            ['name' => 'Brandenburg', 'slug' => 'brandenburg'],
+
+        return GeoState::query()->firstOrCreate(
+            ['country_id' => $country->id, 'ags' => $ags],
+            ['name' => $name, 'slug' => $slug],
         );
+    }
+
+    private function createDistrict(
+        string $ags,
+        string $slug,
+        ?GeoState $state = null,
+    ): GeoDistrict {
+        $state ??= $this->createState('12', 'Brandenburg', 'brandenburg');
 
         return GeoDistrict::create([
             'state_id' => $state->id,
@@ -237,8 +272,13 @@ class PflegeEntryRepositoryTest extends TestCase
         ]);
     }
 
-    private function createLinkedCity(GeoDistrict $district, string $name, string $slug): City
-    {
+    private function createLinkedCity(
+        GeoDistrict $district,
+        string $name,
+        string $slug,
+        string $state = 'Brandenburg',
+        string $stateSlug = 'brandenburg',
+    ): City {
         $sequence = GeoMunicipality::query()->count() + 1;
         $municipality = GeoMunicipality::create([
             'district_id' => $district->id,
@@ -252,8 +292,8 @@ class PflegeEntryRepositoryTest extends TestCase
         return City::create([
             'name' => $name,
             'slug' => $slug,
-            'state' => 'Brandenburg',
-            'state_slug' => 'brandenburg',
+            'state' => $state,
+            'state_slug' => $stateSlug,
             'geo_municipality_id' => $municipality->id,
             'geo_match_status' => 'exact',
             'geo_match_method' => 'exact_official_name',

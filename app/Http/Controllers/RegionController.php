@@ -5,22 +5,43 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Models\Facility;
 use App\Models\GeoDistrict;
+use App\Platform\DirectoryCore\Application\ListEntries;
+use App\Platform\DirectoryCore\Domain\EntrySort;
+use App\Platform\DirectoryCore\Domain\LocationScope;
+use App\Platform\DirectoryCore\Domain\PaginationOptions;
+use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
+use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
+use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryPresenter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class RegionController extends Controller
 {
-    public function show(): View
-    {
-        $facilities = Facility::query()
-            ->select('facilities.*')
-            ->join('cities', 'cities.id', '=', 'facilities.city_id')
-            ->with('city')
-            ->where('cities.state_slug', 'brandenburg')
-            ->orderBy('cities.name')
-            ->orderBy('facilities.name')
-            ->orderBy('facilities.id')
-            ->paginate(24);
+    private const BRANDENBURG_STATE_IDENTIFIER = 'brandenburg';
+
+    public function show(
+        Request $request,
+        PflegeEntryRepository $repository,
+        PflegeEntryPresenter $presenter,
+    ): View {
+        $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
+            pagination: new PaginationOptions(
+                page: max(1, $request->integer('page', 1)),
+                perPage: 24,
+            ),
+            sort: EntrySort::Default,
+            locationScope: LocationScope::state(self::BRANDENBURG_STATE_IDENTIFIER),
+        ));
+
+        $facilities = new LengthAwarePaginator(
+            items: $presenter->presentMany($listingResult->entries),
+            total: $listingResult->total,
+            perPage: $listingResult->perPage,
+            currentPage: $listingResult->currentPage,
+            options: ['path' => $request->url()],
+        );
 
         $districts = collect();
 

@@ -4,12 +4,35 @@ namespace Tests\Feature;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Models\GeoCountry;
+use App\Models\GeoState;
+use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryCardViewModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class RegionPageTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $country = GeoCountry::create([
+            'iso2' => 'DE',
+            'iso3' => 'DEU',
+            'name' => 'Deutschland',
+            'slug' => 'deutschland',
+        ]);
+        GeoState::create([
+            'country_id' => $country->id,
+            'ags' => '12',
+            'name' => 'Brandenburg',
+            'slug' => 'brandenburg',
+        ]);
+    }
 
     public function test_brandenburg_first_page_shows_filtered_city_and_facility_blocks(): void
     {
@@ -21,6 +44,11 @@ class RegionPageTest extends TestCase
         $this->createFacility($potsdam, 2, 'Pflegehaus Potsdam');
         $cottbusFacility = $this->createFacility($cottbus, 3, 'Pflegezentrum Cottbus');
         $otherStateFacility = $this->createFacility($saxony, 4, 'Pflegezentrum Dresden');
+
+        $queryCount = 0;
+        DB::listen(function () use (&$queryCount): void {
+            $queryCount++;
+        });
 
         $response = $this->get(route('region.show'))
             ->assertOk()
@@ -40,6 +68,16 @@ class RegionPageTest extends TestCase
             ->assertDontSee($saxony->name)
             ->assertDontSee(url('/brandenburg/dresden.html'), false)
             ->assertDontSee($otherStateFacility->name);
+        $facilities = $response->viewData('facilities');
+
+        $this->assertInstanceOf(LengthAwarePaginator::class, $facilities);
+        $this->assertInstanceOf(PflegeEntryCardViewModel::class, $facilities->items()[0]);
+        $this->assertLessThanOrEqual(8, $queryCount, 'Region page introduced too many SQL queries.');
+        $response
+            ->assertSee('<link rel="canonical" href="'.route('region.show').'">', false)
+            ->assertDontSee('<nav aria-label="Breadcrumb">', false)
+            ->assertDontSee('<script type="application/ld+json">', false)
+            ->assertDontSee('<meta property="og:', false);
 
         $this->assertTrue(
             strpos($response->getContent(), $cottbus->name)

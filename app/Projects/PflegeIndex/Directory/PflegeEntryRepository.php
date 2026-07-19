@@ -14,7 +14,6 @@ use App\Platform\DirectoryCore\ReadModel\EntrySummary;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
 use App\Platform\DirectoryCore\ReadModel\ListingResult;
 use Illuminate\Database\Eloquent\Builder;
-use LogicException;
 
 final class PflegeEntryRepository implements EntryRepository
 {
@@ -88,10 +87,36 @@ final class PflegeEntryRepository implements EntryRepository
                 )
                 ->join('geo_districts', 'geo_districts.id', '=', 'geo_municipalities.district_id')
                 ->where('geo_districts.ags', $scope->identifier),
-            LocationScopeType::State => throw new LogicException(
-                "Location scope {$scope->type->name} is not supported by PflegeEntryRepository.",
-            ),
+            LocationScopeType::State => $this->applyStateScope($query, $scope),
         };
+    }
+
+    private function applyStateScope(Builder $query, LocationScope $scope): void
+    {
+        $query
+            ->leftJoin(
+                'geo_municipalities',
+                'geo_municipalities.id',
+                '=',
+                'cities.geo_municipality_id',
+            )
+            ->leftJoin('geo_districts', 'geo_districts.id', '=', 'geo_municipalities.district_id')
+            ->leftJoin('geo_states', 'geo_states.id', '=', 'geo_districts.state_id')
+            ->leftJoin('geo_countries', 'geo_countries.id', '=', 'geo_states.country_id')
+            ->where(function (Builder $stateQuery) use ($scope): void {
+                $stateQuery
+                    ->where(function (Builder $officialState) use ($scope): void {
+                        $officialState
+                            ->where('geo_states.slug', $scope->identifier)
+                            ->where('geo_countries.iso2', 'DE');
+                    })
+                    ->orWhere(function (Builder $legacyCity) use ($scope): void {
+                        // Unmapped legacy cities have no official GeoCore relation yet.
+                        $legacyCity
+                            ->whereNull('cities.geo_municipality_id')
+                            ->where('cities.state_slug', $scope->identifier);
+                    });
+            });
     }
 
     private function toEntrySummary(Facility $facility): EntrySummary
