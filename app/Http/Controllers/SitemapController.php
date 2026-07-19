@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Models\GeoDistrict;
+use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\Response;
 
 class SitemapController extends Controller
@@ -17,6 +19,18 @@ class SitemapController extends Controller
             ->with(['facilities' => function ($query): void {
                 $query->select(['id', 'city_id', 'slug', 'updated_at'])->orderBy('slug');
             }])
+            ->orderBy('slug')
+            ->get();
+
+        $districts = GeoDistrict::query()
+            ->select(['id', 'slug', 'updated_at'])
+            ->whereIn('type', ['landkreis', 'kreisfreie_stadt'])
+            ->whereHas('state', function (Builder $stateQuery): void {
+                $stateQuery
+                    ->where('ags', '12')
+                    ->where('slug', 'brandenburg')
+                    ->whereHas('country', fn (Builder $countryQuery): Builder => $countryQuery->where('iso2', 'DE'));
+            })
             ->orderBy('slug')
             ->get();
 
@@ -36,7 +50,7 @@ class SitemapController extends Controller
         ];
 
         return response()
-            ->view('seo.sitemap', compact('cities', 'staticPages', 'lastModified', 'lexiconTerms'), 200, [
+            ->view('seo.sitemap', compact('cities', 'districts', 'staticPages', 'lastModified', 'lexiconTerms'), 200, [
                 'Content-Type' => 'application/xml; charset=UTF-8',
             ])
             ->header('Cache-Control', 'public, max-age=3600');

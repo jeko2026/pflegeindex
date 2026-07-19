@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\FacilityController as AdminFacilityController;
 use App\Http\Controllers\Admin\PasswordController as AdminPasswordController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\DirectoryController;
+use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LexiconController;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 Route::get('/pflegeheime.html', [DirectoryController::class, 'index'])->name('directory.index');
 Route::get('/brandenburg.html', [RegionController::class, 'show'])->name('region.show');
+Route::get('/brandenburg/landkreis/{districtSlug}.html', [DistrictController::class, 'show'])
+    ->name('districts.show');
 Route::get('/brandenburg/{city:slug}.html', [CityController::class, 'show'])
     ->defaults('stateSlug', 'brandenburg')
     ->name('cities.show');

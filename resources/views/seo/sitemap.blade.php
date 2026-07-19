@@ -16,6 +16,14 @@
         <priority>0.7</priority>
     </url>
 @endforeach
+@foreach ($districts as $district)
+    <url>
+        <loc>{{ route('districts.show', $district->slug) }}</loc>
+        @if ($district->updated_at)<lastmod>{{ $district->updated_at->toAtomString() }}</lastmod>@endif
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+@endforeach
 @foreach ($cities as $city)
     <url>
         <loc>{{ route('cities.show', $city) }}</loc>

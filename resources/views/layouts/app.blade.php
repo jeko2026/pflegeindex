@@ -22,7 +22,7 @@
             <button class="nav-toggle" type="button" aria-label="Navigation öffnen" aria-expanded="false" data-nav-toggle><span></span><span></span><span></span></button>
             <nav class="main-nav" data-nav aria-label="Hauptnavigation">
                 <a href="{{ route('directory.index') }}" @if(request()->routeIs('directory.*', 'facilities.*')) aria-current="page" @endif>Pflege finden</a>
-                <a href="{{ route('region.show') }}" @if(request()->routeIs('region.*', 'cities.*')) aria-current="page" @endif>Brandenburg</a>
+                <a href="{{ route('region.show') }}" @if(request()->routeIs('region.*', 'cities.*', 'districts.*')) aria-current="page" @endif>Brandenburg</a>
                 <a href="{{ route('lexicon.index') }}" @if(request()->routeIs('lexicon.*')) aria-current="page" @endif>Pflegelexikon</a>
                 <a href="{{ route('home') }}#so-funktioniert-es">So funktioniert es</a>
                 <a class="header-cta" href="{{ route('directory.index') }}">Suche starten</a>
