@@ -26,6 +26,9 @@ class DirectoryController extends Controller
         $type = trim((string) $request->query('type', ''));
         $citySlug = trim((string) $request->query('city', ''));
         $page = max(1, $request->integer('page', 1));
+        $hasFilterParameters = collect($request->query())
+            ->except('page')
+            ->isNotEmpty();
 
         $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
             pagination: new PaginationOptions(page: $page, perPage: 24),
@@ -52,6 +55,7 @@ class DirectoryController extends Controller
             'selectedType' => $type,
             'selectedCity' => $citySlug,
             'totalCount' => Facility::count(),
+            'hasFilterParameters' => $hasFilterParameters,
         ]);
     }
 }

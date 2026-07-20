@@ -75,6 +75,32 @@ class DirectoryCorePageTest extends TestCase
         }
     }
 
+    public function test_directory_filter_parameters_are_noindex_but_plain_catalog_and_pagination_are_indexable(): void
+    {
+        $robotsMeta = '<meta name="robots" content="noindex,follow">';
+
+        $this->get(route('directory.index'))
+            ->assertOk()
+            ->assertDontSee($robotsMeta, false);
+
+        $this->get(route('directory.index', ['page' => 2]))
+            ->assertOk()
+            ->assertDontSee($robotsMeta, false);
+
+        foreach ([
+            ['q' => 'Potsdam'],
+            ['city' => 'potsdam'],
+            ['type' => 'Ambulante Pflege'],
+            ['q' => 'Potsdam', 'page' => 2],
+            ['pflegeform' => 'ambulant'],
+            ['q' => ''],
+        ] as $parameters) {
+            $this->get(route('directory.index', $parameters))
+                ->assertOk()
+                ->assertSee($robotsMeta, false);
+        }
+    }
+
     public function test_search_city_and_type_filters_keep_and_semantics_in_every_combination(): void
     {
         $potsdam = $this->createCity('Potsdam', 'potsdam');

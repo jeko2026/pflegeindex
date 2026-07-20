@@ -3,6 +3,12 @@
 @section('title', 'Pflegeangebote finden – PflegeIndex')
 @section('description', 'Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.')
 
+@if($hasFilterParameters)
+    @push('head')
+        <meta name="robots" content="noindex,follow">
+    @endpush
+@endif
+
 @section('content')
     <section class="page-hero">
         <div class="container">

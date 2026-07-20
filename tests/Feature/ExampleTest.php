@@ -24,11 +24,30 @@ class ExampleTest extends TestCase
         $response->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     }
 
-    public function test_www_requests_redirect_to_the_canonical_domain(): void
+    public function test_public_domain_variants_redirect_to_the_canonical_https_domain(): void
     {
+        $this->get('http://pflegeindex.com/pflegeheime.html?q=Potsdam')
+            ->assertRedirect('https://pflegeindex.com/pflegeheime.html?q=Potsdam')
+            ->assertStatus(301);
+
         $this->get('http://www.pflegeindex.com/pflegeheime.html?q=Potsdam')
             ->assertRedirect('https://pflegeindex.com/pflegeheime.html?q=Potsdam')
             ->assertStatus(301);
+
+        $this->get('https://www.pflegeindex.com/pflegeheime.html?q=Potsdam')
+            ->assertRedirect('https://pflegeindex.com/pflegeheime.html?q=Potsdam')
+            ->assertStatus(301);
+
+        $this->get('https://pflegeindex.com/')
+            ->assertOk()
+            ->assertHeaderMissing('Location');
+    }
+
+    public function test_health_endpoint_is_protected_from_indexing(): void
+    {
+        $this->get('/up')
+            ->assertOk()
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
     }
 
     public function test_corrected_facility_urls_redirect_permanently(): void

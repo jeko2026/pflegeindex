@@ -10,7 +10,9 @@ class SecurityHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->getHost() === 'www.pflegeindex.com') {
+        $host = strtolower($request->getHost());
+
+        if ($host === 'www.pflegeindex.com' || ($host === 'pflegeindex.com' && ! $request->isSecure())) {
             return redirect()->away('https://pflegeindex.com'.$request->getRequestUri(), 301);
         }
 
@@ -26,6 +28,10 @@ class SecurityHeaders
         }
 
         if ($request->is('admin', 'admin/*')) {
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        }
+
+        if ($request->is('up')) {
             $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
         }
 
