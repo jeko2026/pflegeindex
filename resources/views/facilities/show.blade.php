@@ -110,10 +110,14 @@
                 <ol class="breadcrumbs" style="margin:0">
                     <li><a href="{{ route('home') }}">Startseite</a></li>
                     <li><span aria-hidden="true">›</span><a href="{{ route('region.show') }}">{{ $city->state }}</a></li>
+                    @if($city->geoMunicipality?->district)
+                        <li><span aria-hidden="true">›</span><a href="{{ route('districts.show', $city->geoMunicipality->district->slug) }}">{{ $city->geoMunicipality->district->display_name }}</a></li>
+                    @endif
                     <li><span aria-hidden="true">›</span><a href="{{ route('cities.show', $city) }}">{{ $city->name }}</a></li>
                     <li aria-current="page"><span aria-hidden="true">›</span><span>{{ $facility->name }}</span></li>
                 </ol>
             </nav>
+
         </div>
     </section>
     <div class="container detail-layout">
@@ -158,7 +162,18 @@
                 @endif
                 @if($facility->email)<a class="contact-secondary" href="mailto:{{ $facility->email }}">E-Mail senden</a>@endif
                 @if($displayWebsite)<a class="contact-secondary" href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website öffnen</a>@endif
-                <small>Kontaktdaten geprüft{{ $facility->contact_checked_at ? ' am '.$facility->contact_checked_at->format('d.m.Y') : '' }}</small>
+                @if($facility->contact_status === 'verified' && $facility->contact_checked_at !== null && filled($facility->contact_source) && (filled($facility->phone) || filled($facility->email) || filled($facility->website)))
+                    <small>
+                        Kontaktdaten geprüft am {{ $facility->contact_checked_at->format('d.m.Y') }}
+                        <br>
+                        Quelle: 
+                        @if(filter_var($facility->contact_source, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//i', $facility->contact_source))
+                            <a href="{{ $facility->contact_source }}" target="_blank" rel="nofollow noopener noreferrer">Website des Anbieters</a>
+                        @else
+                            Website des Anbieters
+                        @endif
+                    </small>
+                @endif
             @else
                 <h2 class="contact-phone contact-phone--pending">Telefon wird ergänzt</h2>
                 <p>Der offizielle Ausgangsdatensatz enthält keine Telefonnummer. Der Kontakt wird separat recherchiert und geprüft.</p>

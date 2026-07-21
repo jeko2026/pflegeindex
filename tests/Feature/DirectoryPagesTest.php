@@ -349,6 +349,110 @@ class DirectoryPagesTest extends TestCase
         ]);
     }
 
+    public function test_trust_layer_shows_when_verified_with_date_source_and_contact(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'contact_status' => 'verified',
+            'contact_checked_at' => '2026-07-20 12:00:00',
+            'contact_source' => 'https://example.com/impressum',
+            'phone' => '+4930123456',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('Kontaktdaten geprüft am 20.07.2026')
+            ->assertSee('Quelle:')
+            ->assertSee('Website des Anbieters')
+            ->assertSee('href="https://example.com/impressum"', false)
+            ->assertSee('target="_blank"', false)
+            ->assertSee('rel="nofollow noopener noreferrer"', false);
+    }
+
+    public function test_trust_layer_hides_when_verified_with_date_and_contact_but_no_source(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'contact_status' => 'verified',
+            'contact_checked_at' => '2026-07-20 12:00:00',
+            'contact_source' => null,
+            'phone' => '+4930123456',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertDontSee('Kontaktdaten geprüft')
+            ->assertDontSee('Website des Anbieters');
+    }
+
+    public function test_trust_layer_hides_when_status_is_null_with_contact(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'contact_status' => null,
+            'contact_checked_at' => '2026-07-20 12:00:00',
+            'contact_source' => 'https://example.com/impressum',
+            'phone' => '+4930123456',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertDontSee('Kontaktdaten geprüft')
+            ->assertDontSee('Website des Anbieters');
+    }
+
+    public function test_trust_layer_hides_when_verified_but_no_contacts(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'contact_status' => 'verified',
+            'contact_checked_at' => '2026-07-20 12:00:00',
+            'contact_source' => 'https://example.com/impressum',
+            'phone' => null,
+            'email' => null,
+            'website' => null,
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertDontSee('Kontaktdaten geprüft')
+            ->assertDontSee('Website des Anbieters');
+    }
+
+    public function test_trust_layer_hides_when_verified_without_checked_at(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'contact_status' => 'verified',
+            'contact_checked_at' => null,
+            'contact_source' => 'https://example.com/impressum',
+            'phone' => '+4930123456',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertDontSee('Kontaktdaten geprüft')
+            ->assertDontSee('Website des Anbieters');
+    }
+
+    public function test_trust_layer_shows_date_without_link_when_source_is_invalid_url(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'contact_status' => 'verified',
+            'contact_checked_at' => '2026-07-20 12:00:00',
+            'contact_source' => 'invalid-url',
+            'phone' => '+4930123456',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('Kontaktdaten geprüft am 20.07.2026')
+            ->assertSee('Quelle:')
+            ->assertSee('Website des Anbieters')
+            ->assertDontSee('href="invalid-url"', false);
+    }
+
     private function relatedFacilitiesHtml(TestResponse $response): string
     {
         $content = $response->getContent();
