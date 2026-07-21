@@ -1,7 +1,42 @@
 @extends('layouts.app')
 
-@section('title', 'Pflegeeinrichtungen in Brandenburg – PflegeIndex')
-@section('description', "{$facilityCount} Pflegeeinrichtungen in {$cities->count()} Orten Brandenburgs entdecken.")
+@php
+    $pageTitle = 'Pflegeeinrichtungen in Brandenburg – PflegeIndex';
+    $pageDescription = "{$facilityCount} Pflegeeinrichtungen in {$cities->count()} Orten Brandenburgs entdecken.";
+    $pageUrl = route('region.show');
+    $ogImageUrl = asset('assets/og-image.png');
+    $collectionPageSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'CollectionPage',
+        'name' => $pageTitle,
+        'description' => $pageDescription,
+        'url' => $pageUrl,
+        'inLanguage' => 'de-DE',
+        'isPartOf' => [
+            '@type' => 'WebSite',
+            'name' => 'PflegeIndex',
+            'url' => route('home'),
+        ],
+        'about' => [
+            '@type' => 'AdministrativeArea',
+            'name' => 'Brandenburg',
+        ],
+    ];
+@endphp
+
+@section('title', $pageTitle)
+@section('description', $pageDescription)
+
+@push('head')
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ $pageUrl }}">
+    <meta property="og:site_name" content="PflegeIndex">
+    <meta property="og:locale" content="de_DE">
+    <meta property="og:image" content="{{ $ogImageUrl }}">
+    <script type="application/ld+json">{!! json_encode($collectionPageSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
+@endpush
 
 @section('content')
     <section class="page-hero">

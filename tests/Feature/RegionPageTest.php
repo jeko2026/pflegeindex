@@ -75,14 +75,40 @@ class RegionPageTest extends TestCase
         $this->assertLessThanOrEqual(8, $queryCount, 'Region page introduced too many SQL queries.');
         $response
             ->assertSee('<link rel="canonical" href="'.route('region.show').'">', false)
-            ->assertDontSee('<nav aria-label="Breadcrumb">', false)
-            ->assertDontSee('<script type="application/ld+json">', false)
-            ->assertDontSee('<meta property="og:', false);
+            ->assertDontSee('<nav aria-label="Breadcrumb">', false);
 
         $this->assertTrue(
             strpos($response->getContent(), $cottbus->name)
             < strpos($response->getContent(), $potsdam->name),
         );
+    }
+
+    public function test_brandenburg_has_open_graph_and_collection_page_metadata(): void
+    {
+        $title = 'Pflegeeinrichtungen in Brandenburg – PflegeIndex';
+        $description = '0 Pflegeeinrichtungen in 0 Orten Brandenburgs entdecken.';
+        $pageUrl = route('region.show');
+        $imageUrl = asset('assets/og-image.png');
+        $response = $this->get($pageUrl)->assertOk();
+
+        $response
+            ->assertSee('<meta property="og:type" content="website">', false)
+            ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+            ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+            ->assertSee('<meta property="og:url" content="'.$pageUrl.'">', false)
+            ->assertSee('<meta property="og:site_name" content="PflegeIndex">', false)
+            ->assertSee('<meta property="og:locale" content="de_DE">', false)
+            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false);
+
+        $collectionPage = $this->jsonLdOfType($response->getContent(), 'CollectionPage');
+
+        $this->assertSame($title, $collectionPage['name']);
+        $this->assertSame($description, $collectionPage['description']);
+        $this->assertSame($pageUrl, $collectionPage['url']);
+        $this->assertSame('de-DE', $collectionPage['inLanguage']);
+        $this->assertSame('Brandenburg', $collectionPage['about']['name']);
+        $this->assertArrayNotHasKey('mainEntity', $collectionPage);
+        $this->assertStringNotContainsString('"@type":"ItemList"', $response->getContent());
     }
 
     public function test_brandenburg_facilities_are_stably_sorted_and_paginated(): void
@@ -140,5 +166,21 @@ class RegionPageTest extends TestCase
             'care_types' => ['Ambulante Pflege'],
             'features' => [],
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function jsonLdOfType(string $content, string $type): array
+    {
+        preg_match_all('/<script type="application\/ld\+json">(.*?)<\/script>/s', $content, $matches);
+
+        foreach ($matches[1] ?? [] as $json) {
+            $schema = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+            if (($schema['@type'] ?? null) === $type) {
+                return $schema;
+            }
+        }
+
+        $this->fail("JSON-LD type {$type} was not found.");
     }
 }

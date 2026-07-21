@@ -1,7 +1,45 @@
 @extends('layouts.app')
 
-@section('title', 'PflegeIndex – Pflege einfach finden')
-@section('description', 'Pflegeheime, Pflegedienste, Tagespflege und Krankenhäuser in Brandenburg finden.')
+@php
+    $pageTitle = 'PflegeIndex – Pflege einfach finden';
+    $pageDescription = 'Pflegeheime, Pflegedienste, Tagespflege und Krankenhäuser in Brandenburg finden.';
+    $pageUrl = route('home');
+    $organizationId = $pageUrl.'#organization';
+    $websiteId = $pageUrl.'#website';
+    $ogImageUrl = asset('assets/og-image.png');
+    $organizationSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Organization',
+        '@id' => $organizationId,
+        'name' => 'PflegeIndex',
+        'url' => $pageUrl,
+        'logo' => asset('logo.svg'),
+    ];
+    $websiteSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'WebSite',
+        '@id' => $websiteId,
+        'name' => 'PflegeIndex',
+        'url' => $pageUrl,
+        'inLanguage' => 'de-DE',
+        'publisher' => ['@id' => $organizationId],
+    ];
+@endphp
+
+@section('title', $pageTitle)
+@section('description', $pageDescription)
+
+@push('head')
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ $pageUrl }}">
+    <meta property="og:site_name" content="PflegeIndex">
+    <meta property="og:locale" content="de_DE">
+    <meta property="og:image" content="{{ $ogImageUrl }}">
+    <script type="application/ld+json">{!! json_encode($websiteSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
+    <script type="application/ld+json">{!! json_encode($organizationSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
+@endpush
 
 @section('content')
     <section class="home-hero">

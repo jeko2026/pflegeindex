@@ -24,6 +24,37 @@ class ExampleTest extends TestCase
         $response->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     }
 
+    public function test_home_has_open_graph_website_and_organization_metadata(): void
+    {
+        $title = 'PflegeIndex – Pflege einfach finden';
+        $description = 'Pflegeheime, Pflegedienste, Tagespflege und Krankenhäuser in Brandenburg finden.';
+        $pageUrl = route('home');
+        $imageUrl = asset('assets/og-image.png');
+        $response = $this->get($pageUrl)->assertOk();
+
+        $response
+            ->assertSee('<meta property="og:type" content="website">', false)
+            ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+            ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+            ->assertSee('<meta property="og:url" content="'.$pageUrl.'">', false)
+            ->assertSee('<meta property="og:site_name" content="PflegeIndex">', false)
+            ->assertSee('<meta property="og:locale" content="de_DE">', false)
+            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false);
+
+        $website = $this->jsonLdOfType($response->getContent(), 'WebSite');
+        $organization = $this->jsonLdOfType($response->getContent(), 'Organization');
+
+        $this->assertSame('PflegeIndex', $website['name']);
+        $this->assertSame($pageUrl, $website['url']);
+        $this->assertSame('de-DE', $website['inLanguage']);
+        $this->assertSame(['@id' => $pageUrl.'#organization'], $website['publisher']);
+        $this->assertSame('PflegeIndex', $organization['name']);
+        $this->assertSame($pageUrl, $organization['url']);
+        $this->assertSame(asset('logo.svg'), $organization['logo']);
+        $this->assertArrayNotHasKey('sameAs', $organization);
+        $this->assertFileExists(public_path('assets/og-image.png'));
+    }
+
     public function test_public_domain_variants_redirect_to_the_canonical_https_domain(): void
     {
         $this->get('http://pflegeindex.com/pflegeheime.html?q=Potsdam')
@@ -96,5 +127,21 @@ class ExampleTest extends TestCase
     public function test_an_unknown_lexicon_term_returns_not_found(): void
     {
         $this->get('/pflegelexikon/unbekannt.html')->assertNotFound();
+    }
+
+    /** @return array<string, mixed> */
+    private function jsonLdOfType(string $content, string $type): array
+    {
+        preg_match_all('/<script type="application\/ld\+json">(.*?)<\/script>/s', $content, $matches);
+
+        foreach ($matches[1] ?? [] as $json) {
+            $schema = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+            if (($schema['@type'] ?? null) === $type) {
+                return $schema;
+            }
+        }
+
+        $this->fail("JSON-LD type {$type} was not found.");
     }
 }
