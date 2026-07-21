@@ -28,3 +28,6 @@ Homestead.yaml
 Thumbs.db
 /database/database.sqlite
 /database/*.sqlite
+# Deployment artifacts
+/deployment/*.zip
+/deployment/server-diagnostics.php

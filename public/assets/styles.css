@@ -376,3 +376,29 @@ img, svg { display: block; }
   .pagination-nav { gap: 7px; }
   .pagination-nav a, .pagination-nav span { padding: 9px 11px; font-size: 14px; }
 }
+
+/* Phase 2: Search suggestions (Beliebte Städte) */
+.search-suggestions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: 14px; }
+.search-suggestions__label { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.search-suggestions__list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.search-suggestions__list a { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 20px; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; transition: background 150ms; }
+.search-suggestions__list a:hover { background: rgba(255,255,255,.32); }
+
+/* Phase 2: Popular searches list */
+.popular-searches-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 8px; }
+.popular-search-link { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--navy); font-size: 15px; font-weight: 600; text-decoration: none; transition: border-color 150ms, box-shadow 150ms; }
+.popular-search-link svg { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.5; }
+.popular-search-link:hover { border-color: var(--navy); box-shadow: 0 4px 14px rgba(22,58,99,.1); }
+
+/* Phase 2: Facility card action buttons */
+.result-card__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card-action-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--navy); font-size: 13px; font-weight: 600; text-decoration: none; transition: border-color 150ms, background 150ms; }
+.card-action-btn svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+.card-action-btn:hover { background: var(--surface); border-color: var(--navy); }
+
+/* Phase 2: Secondary button */
+.secondary-button { display: inline-block; padding: 11px 22px; background: var(--surface); border: 2px solid var(--navy); border-radius: 8px; color: var(--navy); font-size: 15px; font-weight: 700; text-decoration: none; transition: background 150ms, color 150ms; }
+.secondary-button:hover { background: var(--navy); color: #fff; }
+
+/* Phase 2: Empty state actions */
+.empty-state__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }

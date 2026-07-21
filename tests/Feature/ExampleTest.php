@@ -129,6 +129,21 @@ class ExampleTest extends TestCase
         $this->get('/pflegelexikon/unbekannt.html')->assertNotFound();
     }
 
+    public function test_homepage_shows_popular_searches_and_top_cities(): void
+    {
+        $response = $this->get('/')->assertOk();
+
+        $response
+            ->assertSee('Beliebte Suchen')
+            ->assertSee('Pflegedienst Potsdam')
+            ->assertSee('Pflegeheim Cottbus')
+            ->assertSee('Pflegeheim Brandenburg an der Havel')
+            ->assertSee('Pflegedienst Frankfurt (Oder)')
+            ->assertSee('Pflegeheim Oranienburg')
+            ->assertSee('Pflegedienst Eberswalde')
+            ->assertSee('href="'.e(route('directory.index', ['q' => 'Potsdam', 'type' => 'Ambulante Pflege'])).'"', false);
+    }
+
     /** @return array<string, mixed> */
     private function jsonLdOfType(string $content, string $type): array
     {
@@ -145,3 +160,4 @@ class ExampleTest extends TestCase
         $this->fail("JSON-LD type {$type} was not found.");
     }
 }
+

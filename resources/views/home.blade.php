@@ -66,6 +66,17 @@
                     <button class="primary-button" type="submit">Pflege finden <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></button>
                 </form>
                 <p class="search-hint">{{ number_format($facilityCount, 0, ',', '.') }} offizielle Basiseinträge aus Brandenburg, sortiert nach Ort und Einrichtungsart.</p>
+
+                @if($topCities->isNotEmpty())
+                    <nav class="search-suggestions" aria-label="Beliebte Städte">
+                        <span class="search-suggestions__label">Beliebte Städte:</span>
+                        <ul class="search-suggestions__list">
+                            @foreach($topCities as $topCity)
+                                <li><a href="{{ route('cities.show', $topCity) }}">{{ $topCity->name }}</a></li>
+                            @endforeach
+                        </ul>
+                    </nav>
+                @endif
             </div>
 
             <div class="hero-visual" aria-hidden="true">
@@ -112,6 +123,28 @@
                 <article class="step"><span class="step-number">2</span><h3>Angebote vergleichen</h3><p>Prüfen Sie Anschrift, Einrichtungsart und veröffentlichte Kontaktdaten.</p></article>
                 <article class="step"><span class="step-number">3</span><h3>Kontakt aufnehmen</h3><p>Geprüfte Telefonnummern und Websites werden direkt im Profil angezeigt.</p></article>
             </div>
+        </div>
+    </section>
+
+    <section class="section section--white" aria-labelledby="popular-searches-title">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Direktsuche</p>
+                <h2 id="popular-searches-title">Beliebte Suchen</h2>
+                <p>Häufig gesuchte Pflegeangebote in Brandenburg – direkt zum Ergebnis.</p>
+            </div>
+            <nav aria-label="Beliebte Suchen">
+                <ul class="popular-searches-list">
+                    @foreach($popularSearches as $search)
+                        <li>
+                            <a class="popular-search-link" href="{{ route('directory.index', ['q' => $search['query'], 'type' => $search['type']]) }}">
+                                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 3a5.5 5.5 0 0 1 4.23 9.02L17 16.29l-.71.71-4.27-4.27A5.5 5.5 0 1 1 8.5 3Zm0 1a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+                                {{ $search['label'] }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </nav>
         </div>
     </section>
 @endsection
