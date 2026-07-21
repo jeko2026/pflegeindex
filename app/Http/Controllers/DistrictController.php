@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesPublicPagination;
 use App\Models\City;
 use App\Models\GeoDistrict;
 use App\Platform\DirectoryCore\Application\ListEntries;
@@ -18,6 +19,8 @@ use Illuminate\View\View;
 
 class DistrictController extends Controller
 {
+    use ValidatesPublicPagination;
+
     public function show(
         string $districtSlug,
         Request $request,
@@ -61,14 +64,16 @@ class DistrictController extends Controller
             ->filter(fn (City $city): bool => $city->facilities_count > 0)
             ->values();
 
+        $page = $this->publicPage($request);
         $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
             pagination: new PaginationOptions(
-                page: max(1, $request->integer('page', 1)),
+                page: $page,
                 perPage: 24,
             ),
             sort: EntrySort::Default,
             locationScope: LocationScope::district($district->ags),
         ));
+        $this->ensurePublicPageExists($listingResult);
 
         $facilities = new LengthAwarePaginator(
             items: $presenter->presentMany($listingResult->entries),

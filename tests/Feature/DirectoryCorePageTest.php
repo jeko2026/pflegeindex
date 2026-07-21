@@ -78,6 +78,15 @@ class DirectoryCorePageTest extends TestCase
     public function test_directory_filter_parameters_are_noindex_but_plain_catalog_and_pagination_are_indexable(): void
     {
         $robotsMeta = '<meta name="robots" content="noindex,follow">';
+        $city = $this->createCity('Potsdam', 'potsdam');
+
+        foreach (range(1, 25) as $number) {
+            $this->createFacility(
+                $city,
+                sprintf('Pflege Potsdam %02d', $number),
+                'Ambulante Pflege',
+            );
+        }
 
         $this->get(route('directory.index'))
             ->assertOk()
@@ -123,7 +132,7 @@ class DirectoryCorePageTest extends TestCase
         );
     }
 
-    public function test_empty_parameters_match_absent_parameters_and_invalid_page_falls_back_to_first(): void
+    public function test_empty_filter_parameters_match_absent_parameters(): void
     {
         $city = $this->createCity('Potsdam', 'potsdam');
         $facility = $this->createFacility($city, 'Pflege Potsdam', 'Ambulante Pflege');
@@ -133,7 +142,6 @@ class DirectoryCorePageTest extends TestCase
             'q' => '   ',
             'city' => '   ',
             'type' => '   ',
-            'page' => 'invalid',
         ]))->assertOk());
 
         $this->assertSame($withoutParameters->total(), $withEmptyParameters->total());

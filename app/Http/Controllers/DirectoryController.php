@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesPublicPagination;
 use App\Models\City;
 use App\Models\Facility;
 use App\Platform\DirectoryCore\Application\ListEntries;
@@ -17,6 +18,8 @@ use Illuminate\View\View;
 
 class DirectoryController extends Controller
 {
+    use ValidatesPublicPagination;
+
     public function index(
         Request $request,
         PflegeEntryRepository $repository,
@@ -25,7 +28,7 @@ class DirectoryController extends Controller
         $query = trim((string) $request->query('q', ''));
         $type = trim((string) $request->query('type', ''));
         $citySlug = trim((string) $request->query('city', ''));
-        $page = max(1, $request->integer('page', 1));
+        $page = $this->publicPage($request);
         $hasFilterParameters = collect($request->query())
             ->except('page')
             ->isNotEmpty();
@@ -37,6 +40,7 @@ class DirectoryController extends Controller
             locationScope: $citySlug === '' ? null : LocationScope::city($citySlug),
             categoryIdentifier: $type,
         ));
+        $this->ensurePublicPageExists($listingResult);
 
         $facilities = new LengthAwarePaginator(
             items: $presenter->presentMany($listingResult->entries),

@@ -44,9 +44,21 @@ final class PflegeEntryRepository implements EntryRepository
 
         $this->applySort($query, $criteria->sort);
 
+        $total = $query->toBase()->getCountForPagination();
+
+        if ($criteria->pagination->page > max(1, (int) ceil($total / $criteria->pagination->perPage))) {
+            return new ListingResult(
+                entries: [],
+                currentPage: $criteria->pagination->page,
+                perPage: $criteria->pagination->perPage,
+                total: $total,
+            );
+        }
+
         $paginator = $query->paginate(
             perPage: $criteria->pagination->perPage,
             page: $criteria->pagination->page,
+            total: $total,
         );
 
         $entries = $paginator->getCollection()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesPublicPagination;
 use App\Models\City;
 use App\Models\Facility;
 use App\Models\GeoDistrict;
@@ -19,6 +20,8 @@ use Illuminate\View\View;
 
 class RegionController extends Controller
 {
+    use ValidatesPublicPagination;
+
     private const BRANDENBURG_STATE_IDENTIFIER = 'brandenburg';
 
     public function show(
@@ -26,14 +29,16 @@ class RegionController extends Controller
         PflegeEntryRepository $repository,
         PflegeEntryPresenter $presenter,
     ): View {
+        $page = $this->publicPage($request);
         $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
             pagination: new PaginationOptions(
-                page: max(1, $request->integer('page', 1)),
+                page: $page,
                 perPage: 24,
             ),
             sort: EntrySort::Default,
             locationScope: LocationScope::state(self::BRANDENBURG_STATE_IDENTIFIER),
         ));
+        $this->ensurePublicPageExists($listingResult);
 
         $facilities = new LengthAwarePaginator(
             items: $presenter->presentMany($listingResult->entries),

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesPublicPagination;
 use App\Models\City;
-use App\Models\GeoDistrict;
 use App\Platform\DirectoryCore\Application\ListEntries;
 use App\Platform\DirectoryCore\Domain\EntrySort;
 use App\Platform\DirectoryCore\Domain\LocationScope;
@@ -18,6 +18,8 @@ use Illuminate\View\View;
 
 class CityController extends Controller
 {
+    use ValidatesPublicPagination;
+
     public function show(
         City $city,
         Request $request,
@@ -28,14 +30,16 @@ class CityController extends Controller
 
         abort_unless($stateSlug !== '' && $city->state_slug === $stateSlug, 404);
 
+        $page = $this->publicPage($request);
         $listingResult = (new ListEntries($repository))->execute(new ListingCriteria(
             pagination: new PaginationOptions(
-                page: max(1, $request->integer('page', 1)),
+                page: $page,
                 perPage: 24,
             ),
             sort: EntrySort::Default,
             locationScope: LocationScope::city($city->slug),
         ));
+        $this->ensurePublicPageExists($listingResult);
 
         $facilities = new LengthAwarePaginator(
             items: $presenter->presentMany($listingResult->entries),

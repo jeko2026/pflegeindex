@@ -178,11 +178,9 @@ class CityPageTest extends TestCase
         );
     }
 
-    public function test_empty_city_and_invalid_page_are_handled_safely(): void
+    public function test_empty_city_first_page_is_handled_safely(): void
     {
         $emptyCity = $this->createCity('Leere Stadt', 'leere-stadt', 'Brandenburg', 'brandenburg');
-        $populatedCity = $this->createCity('Potsdam', 'potsdam', 'Brandenburg', 'brandenburg');
-        $this->createFacility($populatedCity, 1, 'Pflege Potsdam', 'Ambulante Pflege');
 
         $emptyResponse = $this->get(route('cities.show', $emptyCity))
             ->assertOk()
@@ -190,12 +188,6 @@ class CityPageTest extends TestCase
             ->assertSee('<strong>0</strong><span>Einrichtungen</span>', false);
 
         $this->assertSame(0, $emptyResponse->viewData('facilities')->total());
-
-        $invalidPageResponse = $this->get(route('cities.show', [$populatedCity, 'page' => 'invalid']))
-            ->assertOk()
-            ->assertSee('Pflege Potsdam');
-
-        $this->assertSame(1, $invalidPageResponse->viewData('facilities')->currentPage());
     }
 
     public function test_city_page_query_count_does_not_grow_with_facility_cards(): void
