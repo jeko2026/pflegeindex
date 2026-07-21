@@ -30,6 +30,9 @@ HTTP. Do not print `APP_KEY`, passwords or other environment secrets.
 - [ ] The server runs PHP 8.2 or newer with the required SQLite extensions.
 - [ ] The production `.env` contains `APP_ENV=production`, `APP_DEBUG=false`
       and `APP_URL=https://pflegeindex.com`.
+- [ ] Production logging uses `LOG_CHANNEL=stack`, `LOG_STACK=daily` and
+      `LOG_DAILY_DAYS=30`; `storage/logs` is writable and outside the public
+      web root. Keep the approved `LOG_LEVEL` unchanged.
 
 Record the currently deployed commit before changing anything:
 

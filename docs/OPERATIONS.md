@@ -25,10 +25,19 @@ It does not replace hosting-provider monitoring or the deployment checklist.
 - Check a directory search, pagination link and facility contact link.
 - Review failed login patterns and unexpected admin requests in available
   hosting logs.
-- Review database and log growth; rotate or archive logs according to the
-  hosting retention policy.
+- Review database and log growth. Confirm Laravel continues to create one
+  dated application log per day and removes files older than 30 days.
 - Verify that no `.env`, SQLite, backup, log, `public/hot`, development manifest
   or temporary installer is present in the public document root.
+
+## Application logs
+
+Production uses `LOG_CHANNEL=stack`, `LOG_STACK=daily` and
+`LOG_DAILY_DAYS=30`. Laravel writes `storage/logs/laravel-YYYY-MM-DD.log` in the
+private application directory and Monolog automatically removes application
+logs older than 30 days. `storage/logs` must be writable by PHP and must never
+be exposed through the public web root. Hosting access/error logs have their
+own provider retention policy and are not managed by this Laravel setting.
 
 ## Backups
 
