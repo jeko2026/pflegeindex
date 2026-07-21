@@ -247,6 +247,7 @@ class FacilityController extends Controller
                     || $sources === []
                     || $facility->description_draft_checked_at === null) {
                     $skipped++;
+
                     continue;
                 }
 

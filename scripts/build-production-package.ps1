@@ -55,7 +55,7 @@ function Remove-SafeDirectory {
     }
 }
 
-function Invoke-NativeCommand {
+function Invoke-LoggedNativeCommand {
     param(
         [string] $Command,
         [string[]] $Arguments,
@@ -64,12 +64,37 @@ function Invoke-NativeCommand {
 
     Push-Location $WorkingDirectory
     try {
-        & $Command @Arguments
-        if ($LASTEXITCODE -ne 0) {
-            throw "External command failed: $Command"
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = @(& $Command @Arguments 2>&1)
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
+        foreach ($line in $output) {
+            Write-Host ($line.ToString())
+        }
+
+        return [pscustomobject]@{
+            ExitCode = $exitCode
         }
     } finally {
         Pop-Location
+    }
+}
+
+function Invoke-NativeCommand {
+    param(
+        [string] $Command,
+        [string[]] $Arguments,
+        [string] $WorkingDirectory
+    )
+
+    $result = Invoke-LoggedNativeCommand -Command $Command -Arguments $Arguments -WorkingDirectory $WorkingDirectory
+    if ($result.ExitCode -ne 0) {
+        throw "External command failed with exit code $($result.ExitCode): $Command"
     }
 }
 
@@ -237,48 +262,84 @@ function Install-ProductionDependencies {
     $composer = Get-Command composer -ErrorAction SilentlyContinue
 
     if ($null -eq $php -or $null -eq $composer) {
-        return [ordered]@{
+        return [pscustomobject]@{
             status = 'blocked'
+            message = 'Local PHP CLI and Composer are both required.'
             reason = 'Local PHP CLI and Composer are both required; no existing vendor directory was copied.'
             phpVersion = $null
+            composerInstallExitCode = $null
+            platformCheckExitCode = $null
+            vendorPresent = $false
+            autoloadPresent = $false
         }
     }
 
-    try {
-        $phpVersion = (& $php.Source -r 'echo PHP_VERSION;').Trim()
-        if ($LASTEXITCODE -ne 0 -or $phpVersion -notmatch '^8\.2\.') {
-            throw 'Dependency build must run with PHP 8.2.x.'
-        }
+    $phpVersion = (& $php.Source -r 'echo PHP_VERSION;').Trim()
+    if ($LASTEXITCODE -ne 0 -or $phpVersion -notmatch '^8\.2\.') {
+        throw 'Dependency build must run with PHP 8.2.x.'
+    }
 
-        Invoke-NativeCommand -Command $composer.Source -Arguments @(
-            'install', '--no-dev', '--optimize-autoloader', '--no-interaction', '--prefer-dist'
-        ) -WorkingDirectory $SourceRoot
-        Invoke-NativeCommand -Command $composer.Source -Arguments @(
-            'check-platform-reqs', '--no-dev'
-        ) -WorkingDirectory $SourceRoot
+    $installResult = Invoke-LoggedNativeCommand -Command $composer.Source -Arguments @(
+        'install', '--no-dev', '--optimize-autoloader', '--no-interaction', '--prefer-dist'
+    ) -WorkingDirectory $SourceRoot
+    if ($installResult.ExitCode -ne 0) {
+        throw "Composer production install failed with exit code $($installResult.ExitCode)."
+    }
 
-        foreach ($devPackage in @(
-            'vendor\phpunit',
-            'vendor\fakerphp',
-            'vendor\mockery',
-            'vendor\laravel\pail',
-            'vendor\nunomaduro\collision'
-        )) {
-            if (Test-Path -LiteralPath (Join-Path $SourceRoot $devPackage)) {
-                throw "Development dependency is present after --no-dev install: $devPackage"
-            }
-        }
+    $vendorPresent = Test-Path -LiteralPath (Join-Path $SourceRoot 'vendor') -PathType Container
+    $autoloadPresent = Test-Path -LiteralPath (Join-Path $SourceRoot 'vendor\autoload.php') -PathType Leaf
+    if (-not $vendorPresent -or -not $autoloadPresent) {
+        throw 'Composer reported success but production vendor/autoload.php is missing.'
+    }
 
-        return [ordered]@{
-            status = 'complete'
-            reason = 'composer install and composer check-platform-reqs completed successfully.'
-            phpVersion = $phpVersion
+    $platformResult = Invoke-LoggedNativeCommand -Command $composer.Source -Arguments @(
+        'check-platform-reqs', '--no-dev'
+    ) -WorkingDirectory $SourceRoot
+    if ($platformResult.ExitCode -ne 0) {
+        throw "Composer production platform check failed with exit code $($platformResult.ExitCode)."
+    }
+
+    foreach ($devPackage in @(
+        'vendor\phpunit',
+        'vendor\fakerphp',
+        'vendor\mockery',
+        'vendor\laravel\pail',
+        'vendor\nunomaduro\collision'
+    )) {
+        if (Test-Path -LiteralPath (Join-Path $SourceRoot $devPackage)) {
+            throw "Development dependency is present after --no-dev install: $devPackage"
         }
-    } catch {
-        return [ordered]@{
-            status = 'failed'
-            reason = 'Production dependency build or platform verification failed.'
-            phpVersion = $phpVersion
+    }
+
+    return [pscustomobject]@{
+        status = 'complete'
+        message = 'Production dependencies and platform requirements verified.'
+        reason = 'composer install and composer check-platform-reqs completed successfully.'
+        phpVersion = $phpVersion
+        composerInstallExitCode = $installResult.ExitCode
+        platformCheckExitCode = $platformResult.ExitCode
+        vendorPresent = $vendorPresent
+        autoloadPresent = $autoloadPresent
+    }
+}
+
+function Assert-DependencyResult {
+    param([object] $Result)
+
+    if ($null -eq $Result -or $Result -is [array]) {
+        throw 'Dependency install must return exactly one structured result object.'
+    }
+
+    foreach ($property in @(
+        'status',
+        'message',
+        'composerInstallExitCode',
+        'platformCheckExitCode',
+        'vendorPresent',
+        'autoloadPresent'
+    )) {
+        if ($Result.PSObject.Properties.Name -notcontains $property) {
+            throw "Dependency result is missing required property: $property"
         }
     }
 }
@@ -377,11 +438,12 @@ function Get-ForbiddenFindings {
 
             $containsLocalUserPath = $false
             if (-not [string]::IsNullOrWhiteSpace($localUserName)) {
-                $userPathPattern = '(?i)(/Users/|/home/)' + [regex]::Escape($localUserName) + '(/|\\)'
+                $userPathPattern = '(?i)(?:[A-Z]:[\\/]Users[\\/]|/Users/|/home/)' + [regex]::Escape($localUserName) + '([\\/]|$)'
                 $containsLocalUserPath = $content -match $userPathPattern
             }
 
-            if ($content -match '(?i)(D:\\|D:/|C:\\Users\\)' -or $containsLocalUserPath) {
+            $localRepoPattern = [regex]::Escape($repoRoot) -replace '\\\\', '[\\/]'
+            if ($content -match $localRepoPattern -or $containsLocalUserPath) {
                 $findings.Add([pscustomobject]@{ Path = $relative; Type = 'local absolute path or username' })
             }
 
@@ -452,7 +514,7 @@ function Write-ReleaseManifest {
         [string] $BuildDate,
         [string] $LaravelVersion,
         [string] $ComposerLockHash,
-        [System.Collections.IDictionary] $DependencyResult
+        [object] $DependencyResult
     )
 
     $privateRoot = Join-Path $OutputRoot 'private-core'
@@ -543,6 +605,10 @@ archives; documentation and local audit output not required at runtime.
         dependencyBuild = [ordered]@{
             status = $DependencyResult.status
             detail = $DependencyResult.reason
+            composerInstallExitCode = $DependencyResult.composerInstallExitCode
+            platformCheckExitCode = $DependencyResult.platformCheckExitCode
+            vendorPresent = $DependencyResult.vendorPresent
+            autoloadPresent = $DependencyResult.autoloadPresent
         }
         forbiddenFileScan = 'passed'
         indexRequiresPrivatePathReplacement = $true
@@ -614,11 +680,13 @@ function Invoke-SelfCheck {
         foreach ($case in @(
             @{ Name = 'env'; File = '.env' },
             @{ Name = 'sqlite'; File = 'database.sqlite' },
-            @{ Name = 'log'; File = 'laravel.log' }
+            @{ Name = 'log'; File = 'laravel.log' },
+            @{ Name = 'local-path'; File = 'local-path.php'; Content = 'D:\Websites\Pflegeindex\laravel' }
         )) {
             $fixture = Join-Path $root ('scan-' + $case.Name)
             New-Item -ItemType Directory -Path $fixture -Force | Out-Null
-            Write-Utf8NoBom -Path (Join-Path $fixture $case.File) -Content 'test fixture only'
+            $fixtureContent = if ($case.ContainsKey('Content')) { $case.Content } else { 'test fixture only' }
+            Write-Utf8NoBom -Path (Join-Path $fixture $case.File) -Content $fixtureContent
             $rejected = $false
             try { Assert-NoForbiddenFiles -PackageRoot $fixture } catch { $rejected = $_.Exception.Message -like 'Forbidden-file scan failed:*' }
             if (-not $rejected) { throw "Scanner accepted forbidden $($case.Name) fixture." }
@@ -662,8 +730,33 @@ function Invoke-SelfCheck {
         if (Test-Path -LiteralPath (Join-Path $repeatFixture 'stale.txt')) { throw 'Repeated build mixed stale files.' }
         $passed++
 
-        if ($passed -ne 10) { throw "Self-check count mismatch: $passed/10" }
-        Write-Host 'SELF-CHECK PASSED: 10/10 checks.' -ForegroundColor Green
+        $php = Get-Command php -ErrorAction SilentlyContinue
+        $composer = Get-Command composer -ErrorAction SilentlyContinue
+        if ($null -ne $php -and $null -ne $composer) {
+            $dependencyResult = Install-ProductionDependencies -SourceRoot $source
+            Assert-DependencyResult -Result $dependencyResult
+            if ($dependencyResult.status -ne 'complete' -or
+                -not $dependencyResult.vendorPresent -or
+                -not $dependencyResult.autoloadPresent -or
+                $dependencyResult.composerInstallExitCode -ne 0 -or
+                $dependencyResult.platformCheckExitCode -ne 0) {
+                throw 'Successful Composer dependency integration check failed.'
+            }
+
+            $dependencyPackage = Join-Path $root 'dependency-package'
+            Copy-ProductionPayload -SourceRoot $source -OutputRoot $dependencyPackage -DependenciesComplete $true
+            if (-not (Test-Path -LiteralPath (Join-Path $dependencyPackage 'private-core\vendor\autoload.php') -PathType Leaf)) {
+                throw 'Package build did not continue after successful dependency installation.'
+            }
+            $passed++
+
+            if ($passed -ne 12) { throw "Self-check count mismatch: $passed/12" }
+            Write-Host 'SELF-CHECK PASSED: 12/12 checks, including real Composer dependency installation.' -ForegroundColor Green
+        } else {
+            if ($passed -ne 11) { throw "Self-check count mismatch: $passed/11" }
+            Write-Host 'SELF-CHECK PASSED: 11/11 core checks.' -ForegroundColor Green
+            Write-Warning 'Composer dependency integration check skipped because PHP or Composer is unavailable.'
+        }
     } finally {
         Remove-SafeDirectory -Path $root -AllowedRoot $buildBase
     }
@@ -685,6 +778,7 @@ function Invoke-ProductionBuild {
     Test-SourceRequirements -SourceRoot $sourceRoot
 
     $dependencyResult = Install-ProductionDependencies -SourceRoot $sourceRoot
+    Assert-DependencyResult -Result $dependencyResult
     $dependenciesComplete = $dependencyResult.status -eq 'complete'
     Copy-ProductionPayload -SourceRoot $sourceRoot -OutputRoot $stagingRoot -DependenciesComplete $dependenciesComplete
 
