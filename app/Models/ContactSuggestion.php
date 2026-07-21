@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\HttpUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,5 +63,20 @@ class ContactSuggestion extends Model
             'rejected' => 'Abgelehnt',
             default => 'Zu prüfen',
         };
+    }
+
+    /** @return list<string> */
+    public function safePagesChecked(): array
+    {
+        $pages = $this->raw_payload['pagesChecked'] ?? [];
+
+        if (! is_array($pages)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            static fn (mixed $page): ?string => HttpUrl::normalize($page),
+            $pages,
+        ))));
     }
 }

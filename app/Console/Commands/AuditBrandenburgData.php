@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Facility;
+use App\Support\HttpUrl;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use JsonException;
@@ -203,10 +204,7 @@ class AuditBrandenburgData extends Command
                 return false;
             }
 
-            $scheme = parse_url((string) $facility->website, PHP_URL_SCHEME);
-
-            return filter_var($facility->website, FILTER_VALIDATE_URL) === false
-                || ! in_array($scheme, ['http', 'https'], true);
+            return ! HttpUrl::isValid($facility->website);
         })->count();
         $sharedLocations = $records
             ->groupBy(fn (array $record): string => mb_strtolower(implode('|', [

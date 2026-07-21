@@ -26,8 +26,8 @@ class ImportContactSuggestions extends Command
 
             $this->components->info('Parser results imported into the review queue.');
             $this->table(
-                ['Created', 'Updated', 'Unknown facilities', 'Pending review'],
-                [[$summary['created'], $summary['updated'], $summary['unknown'], $summary['pending']]],
+                ['Created', 'Updated', 'Unknown facilities', 'Rejected URLs', 'Pending review'],
+                [[$summary['created'], $summary['updated'], $summary['unknown'], $summary['rejected_urls'], $summary['pending']]],
             );
 
             return self::SUCCESS;

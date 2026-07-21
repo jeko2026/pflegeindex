@@ -8,7 +8,7 @@
 
         @if(session('status'))<div class="admin-alert">{{ session('status') }}</div>@endif
         @if($summary = session('import_summary'))
-            <div class="admin-alert">Import abgeschlossen: {{ $summary['created'] }} neu, {{ $summary['updated'] }} aktualisiert, {{ $summary['unknown'] }} unbekannte Einrichtungen. {{ $summary['pending'] }} Ergebnisse warten insgesamt auf Prüfung.</div>
+            <div class="admin-alert">Import abgeschlossen: {{ $summary['created'] }} neu, {{ $summary['updated'] }} aktualisiert, {{ $summary['unknown'] }} unbekannte Einrichtungen. {{ $summary['rejected_urls'] }} ungültige URLs wurden verworfen. {{ $summary['pending'] }} Ergebnisse warten insgesamt auf Prüfung.</div>
         @endif
         @if($errors->any())<div class="admin-errors"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 

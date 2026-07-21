@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ContactSuggestion;
 use App\Models\Facility;
+use App\Support\HttpUrl;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use JsonException;
@@ -11,11 +12,11 @@ use RuntimeException;
 
 class ContactSuggestionImporter
 {
-    /** @return array{created: int, updated: int, unknown: int, pending: int} */
+    /** @return array{created: int, updated: int, unknown: int, rejected_urls: int, pending: int} */
     public function import(string $path): array
     {
         $results = $this->readResults($path);
-        $summary = ['created' => 0, 'updated' => 0, 'unknown' => 0, 'pending' => 0];
+        $summary = ['created' => 0, 'updated' => 0, 'unknown' => 0, 'rejected_urls' => 0, 'pending' => 0];
 
         DB::transaction(function () use ($results, &$summary): void {
             foreach ($results as $result) {
@@ -28,6 +29,17 @@ class ContactSuggestionImporter
                 }
 
                 $fingerprint = $this->fingerprint($result);
+                $urls = [];
+
+                foreach (['website' => 'website', 'phone_source' => 'phoneSource', 'email_source' => 'emailSource'] as $column => $field) {
+                    $value = $result[$field] ?? null;
+                    $urls[$column] = HttpUrl::normalize($value);
+
+                    if ($value !== null && $urls[$column] === null) {
+                        $summary['rejected_urls']++;
+                    }
+                }
+
                 $suggestion = ContactSuggestion::query()->where('fingerprint', $fingerprint)->first();
                 $isNew = $suggestion === null;
                 $matchesPublishedContact = $this->matchesPublishedContact($facility, $result);
@@ -42,9 +54,7 @@ class ContactSuggestionImporter
                     'parser_status' => (string) ($result['status'] ?? 'unknown'),
                     'phone' => $result['phone'] ?? null,
                     'email' => $result['email'] ?? null,
-                    'website' => $result['website'] ?? null,
-                    'phone_source' => $result['phoneSource'] ?? null,
-                    'email_source' => $result['emailSource'] ?? null,
+                    ...$urls,
                     'confidence' => isset($result['confidence']) ? (int) $result['confidence'] : null,
                     'checked_at' => isset($result['checkedAt']) ? Carbon::parse($result['checkedAt']) : null,
                     'raw_payload' => $result,

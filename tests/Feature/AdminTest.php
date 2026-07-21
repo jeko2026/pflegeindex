@@ -72,6 +72,51 @@ class AdminTest extends TestCase
         ]);
     }
 
+    public function test_invalid_facility_url_is_rejected_without_partial_update(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+
+        $this->actingAs($admin)
+            ->from(route('admin.facilities.edit', $facility))
+            ->put(route('admin.facilities.update', $facility), [
+                'description' => 'Diese Änderung darf nicht gespeichert werden.',
+                'phone' => '+493311234567',
+                'website' => 'javascript:alert(1)',
+                'contact_source' => 'https://example.de/kontakt',
+                'contact_status' => 'verified',
+                'contact_locked' => true,
+            ])
+            ->assertRedirect(route('admin.facilities.edit', $facility))
+            ->assertSessionHasErrors('website');
+
+        $facility->refresh();
+        $this->assertNull($facility->description);
+        $this->assertNull($facility->phone);
+        $this->assertNull($facility->website);
+        $this->assertFalse($facility->contact_locked);
+    }
+
+    public function test_invalid_description_source_is_rejected_without_publishing(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+
+        $this->actingAs($admin)
+            ->post(route('admin.facilities.description-draft', $facility), [
+                'action' => 'publish',
+                'description_draft' => 'Dieser Entwurf darf nicht veröffentlicht werden.',
+                'description_draft_sources' => 'data:text/html,unsafe',
+                'description_draft_checked_at' => '2026-07-21',
+            ])
+            ->assertSessionHasErrors('description_draft_sources');
+
+        $facility->refresh();
+        $this->assertNull($facility->description);
+        $this->assertNull($facility->description_sources);
+        $this->assertNull($facility->description_checked_at);
+    }
+
     public function test_administrator_can_open_contact_review_list(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -220,6 +265,41 @@ class AdminTest extends TestCase
             'description' => 'Manuell geprüfte Beschreibung.',
             'phone' => '+493319999999',
             'contact_locked' => true,
+        ]);
+    }
+
+    public function test_facility_import_discards_invalid_normalized_urls_without_failing(): void
+    {
+        $facility = $this->createFacility();
+        $path = storage_path('framework/testing/invalid-url-import.json');
+        File::ensureDirectoryExists(dirname($path));
+        File::put($path, json_encode([[
+            'id' => $facility->source_id,
+            'name' => $facility->name,
+            'city' => $facility->city->name,
+            'citySlug' => $facility->city->slug,
+            'slug' => $facility->slug,
+            'postalCode' => $facility->postal_code,
+            'address' => $facility->address,
+            'type' => $facility->type,
+            'website' => 'file:///etc/passwd',
+            'contactSource' => ['https://example.de'],
+            'careTypes' => ['Ambulante Pflege'],
+            'features' => [],
+        ]], JSON_THROW_ON_ERROR));
+
+        try {
+            $this->artisan('pflegeindex:import', ['path' => $path])
+                ->expectsOutputToContain('2 invalid URL values were discarded.')
+                ->assertSuccessful();
+        } finally {
+            File::delete($path);
+        }
+
+        $this->assertDatabaseHas('facilities', [
+            'id' => $facility->id,
+            'website' => null,
+            'contact_source' => null,
         ]);
     }
 

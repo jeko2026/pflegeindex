@@ -76,6 +76,34 @@ class ContactSuggestionTest extends TestCase
         ]);
     }
 
+    public function test_parser_import_discards_invalid_normalized_urls_but_retains_raw_payload(): void
+    {
+        $facility = $this->createFacility();
+        $path = $this->writeParserResult($facility, [
+            'status' => 'verified',
+            'phone' => '+493319999999',
+            'website' => 'javascript:alert(1)',
+            'phoneSource' => ' https://example.de/kontakt ',
+            'emailSource' => ['https://example.de/email'],
+            'pagesChecked' => ['https://example.de/kontakt', 'data:text/html,unsafe'],
+        ]);
+
+        try {
+            $this->artisan('pflegeindex:import-suggestions', ['path' => $path])
+                ->expectsOutputToContain('Rejected URLs')
+                ->assertSuccessful();
+        } finally {
+            File::delete($path);
+        }
+
+        $suggestion = ContactSuggestion::query()->firstOrFail();
+        $this->assertNull($suggestion->website);
+        $this->assertSame('https://example.de/kontakt', $suggestion->phone_source);
+        $this->assertNull($suggestion->email_source);
+        $this->assertSame('javascript:alert(1)', $suggestion->raw_payload['website']);
+        $this->assertSame(['https://example.de/kontakt'], $suggestion->safePagesChecked());
+    }
+
     public function test_administrator_can_accept_a_verified_contact(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -98,6 +126,22 @@ class ContactSuggestionTest extends TestCase
             'decision' => 'accepted',
             'reviewed_by' => $admin->id,
         ]);
+    }
+
+    public function test_invalid_historical_suggestion_cannot_be_accepted_or_partially_saved(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+        $suggestion = $this->createSuggestion($facility);
+        $suggestion->update(['website' => 'file:///etc/passwd']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.suggestions.accept', $suggestion))
+            ->assertSessionHasErrors('suggestion');
+
+        $this->assertNull($facility->fresh()->phone);
+        $this->assertSame('pending', $suggestion->fresh()->decision);
+        $this->assertNull($suggestion->reviewed_by);
     }
 
     public function test_rejected_contact_does_not_change_the_facility(): void

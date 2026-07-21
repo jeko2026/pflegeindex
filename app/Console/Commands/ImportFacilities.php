@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Support\HttpUrl;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use JsonException;
@@ -12,6 +13,8 @@ use Throwable;
 
 class ImportFacilities extends Command
 {
+    private int $rejectedUrlCount = 0;
+
     protected $signature = 'pflegeindex:import
                             {path? : Path to the normalized facilities JSON file}';
 
@@ -20,6 +23,7 @@ class ImportFacilities extends Command
     public function handle(): int
     {
         try {
+            $this->rejectedUrlCount = 0;
             $path = $this->resolvePath();
             $records = $this->readRecords($path);
 
@@ -28,6 +32,11 @@ class ImportFacilities extends Command
             });
 
             $this->components->info('PflegeIndex data imported successfully.');
+
+            if ($this->rejectedUrlCount > 0) {
+                $this->components->warn($this->rejectedUrlCount.' invalid URL values were discarded.');
+            }
+
             $this->table(
                 ['Cities', 'Facilities', 'Verified phones'],
                 [[City::count(), Facility::count(), Facility::whereNotNull('phone')->count()]],
@@ -144,8 +153,8 @@ class ImportFacilities extends Command
                 'description' => $manualDescriptions->get($sourceId) ?? ($record['description'] ?? null),
                 'phone' => $lockedContact !== null ? $lockedContact->phone : ($record['phone'] ?? null),
                 'email' => $lockedContact !== null ? $lockedContact->email : ($record['email'] ?? null),
-                'website' => $lockedContact !== null ? $lockedContact->website : ($record['website'] ?? null),
-                'contact_source' => $lockedContact !== null ? $lockedContact->contact_source : ($record['contactSource'] ?? null),
+                'website' => $lockedContact !== null ? $lockedContact->website : $this->importedUrl($record['website'] ?? null),
+                'contact_source' => $lockedContact !== null ? $lockedContact->contact_source : $this->importedUrl($record['contactSource'] ?? null),
                 'contact_status' => $lockedContact !== null ? $lockedContact->contact_status : ($record['contactStatus'] ?? null),
                 'contact_checked_at' => $lockedContact !== null
                     ? $lockedContact->contact_checked_at?->format('Y-m-d H:i:s')
@@ -184,5 +193,16 @@ class ImportFacilities extends Command
         $timestamp = strtotime($value);
 
         return $timestamp === false ? null : date('Y-m-d H:i:s', $timestamp);
+    }
+
+    private function importedUrl(mixed $value): ?string
+    {
+        $url = HttpUrl::normalize($value);
+
+        if ($value !== null && $url === null) {
+            $this->rejectedUrlCount++;
+        }
+
+        return $url;
     }
 }

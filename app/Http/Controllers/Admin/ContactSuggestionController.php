@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ContactSuggestion;
 use App\Services\ContactSuggestionImporter;
+use App\Support\HttpUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ContactSuggestionController extends Controller
@@ -62,6 +64,14 @@ class ContactSuggestionController extends Controller
     {
         abort_unless($suggestion->decision === 'pending', 422);
 
+        foreach (['website', 'phone_source', 'email_source'] as $field) {
+            if ($suggestion->{$field} !== null && ! HttpUrl::isValid($suggestion->{$field})) {
+                throw ValidationException::withMessages([
+                    'suggestion' => 'Der Vorschlag enthält eine ungültige Webadresse und wurde nicht übernommen.',
+                ]);
+            }
+        }
+
         DB::transaction(function () use ($request, $suggestion): void {
             $facility = $suggestion->facility()->lockForUpdate()->firstOrFail();
 
@@ -69,8 +79,10 @@ class ContactSuggestionController extends Controller
                 $facility->update([
                     'phone' => $suggestion->phone ?? $facility->phone,
                     'email' => $suggestion->email ?? $facility->email,
-                    'website' => $suggestion->website ?? $facility->website,
-                    'contact_source' => $suggestion->phone_source ?? $suggestion->email_source ?? $facility->contact_source,
+                    'website' => HttpUrl::normalize($suggestion->website) ?? $facility->website,
+                    'contact_source' => HttpUrl::normalize($suggestion->phone_source)
+                        ?? HttpUrl::normalize($suggestion->email_source)
+                        ?? $facility->contact_source,
                     'contact_status' => 'verified',
                     'contact_checked_at' => $suggestion->checked_at ?? now(),
                     'contact_locked' => true,

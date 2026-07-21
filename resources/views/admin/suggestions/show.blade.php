@@ -55,10 +55,10 @@
             <ul class="source-list">
                 @if($suggestion->phone_source)<li>Telefon: <a href="{{ $suggestion->phone_source }}" target="_blank" rel="noopener">{{ $suggestion->phone_source }}</a></li>@endif
                 @if($suggestion->email_source && $suggestion->email_source !== $suggestion->phone_source)<li>E-Mail: <a href="{{ $suggestion->email_source }}" target="_blank" rel="noopener">{{ $suggestion->email_source }}</a></li>@endif
-                @foreach(($suggestion->raw_payload['pagesChecked'] ?? []) as $page)
+                @foreach($suggestion->safePagesChecked() as $page)
                     @if($page !== $suggestion->phone_source && $page !== $suggestion->email_source)<li><a href="{{ $page }}" target="_blank" rel="noopener">{{ $page }}</a></li>@endif
                 @endforeach
-                @if(!$suggestion->phone_source && !$suggestion->email_source && empty($suggestion->raw_payload['pagesChecked']))<li>Keine verifizierte Quelle gefunden.</li>@endif
+                @if(!$suggestion->phone_source && !$suggestion->email_source && $suggestion->safePagesChecked() === [])<li>Keine verifizierte Quelle gefunden.</li>@endif
             </ul>
         </section>
 

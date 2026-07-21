@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ContactSuggestion;
 use App\Models\Facility;
+use App\Rules\AbsoluteHttpUrl;
+use App\Support\HttpUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,8 +90,8 @@ class FacilityController extends Controller
             'description' => ['nullable', 'string', 'max:3000'],
             'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
-            'website' => ['nullable', 'url:http,https', 'max:2000'],
-            'contact_source' => ['nullable', 'url:http,https', 'max:2000'],
+            'website' => ['nullable', new AbsoluteHttpUrl],
+            'contact_source' => ['nullable', new AbsoluteHttpUrl],
             'contact_status' => ['nullable', Rule::in(['verified', 'pending', 'not_found'])],
             'contact_locked' => ['required', 'boolean'],
             'suggestion_id' => ['nullable', 'integer'],
@@ -104,6 +106,12 @@ class FacilityController extends Controller
                 if ($validated[$field] === '') {
                     $validated[$field] = null;
                 }
+            }
+        }
+
+        foreach (['website', 'contact_source'] as $field) {
+            if (isset($validated[$field])) {
+                $validated[$field] = HttpUrl::normalize($validated[$field]);
             }
         }
 
@@ -178,12 +186,14 @@ class FacilityController extends Controller
         ))));
 
         foreach ($sources as $source) {
-            if (filter_var($source, FILTER_VALIDATE_URL) === false || ! Str::startsWith($source, ['http://', 'https://'])) {
+            if (! HttpUrl::isValid($source)) {
                 throw ValidationException::withMessages([
                     'description_draft_sources' => 'Jede Quelle muss eine vollständige Webadresse mit http:// oder https:// sein.',
                 ]);
             }
         }
+
+        $sources = array_map(static fn (string $source): string => HttpUrl::normalize($source), $sources);
 
         if ($sources === []) {
             throw ValidationException::withMessages([
@@ -245,11 +255,14 @@ class FacilityController extends Controller
 
                 if (! filled($facility->description_draft)
                     || $sources === []
+                    || collect($sources)->contains(fn (mixed $source): bool => ! HttpUrl::isValid($source))
                     || $facility->description_draft_checked_at === null) {
                     $skipped++;
 
                     continue;
                 }
+
+                $sources = array_map(static fn (string $source): string => HttpUrl::normalize($source), $sources);
 
                 $facility->update([
                     'description' => trim((string) $facility->description_draft),
