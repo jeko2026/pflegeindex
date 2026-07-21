@@ -143,6 +143,41 @@ class RegionPageTest extends TestCase
             ->assertSee('Seite 2 von 2');
     }
 
+    public function test_brandenburg_pagination_has_page_specific_seo_metadata(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam', 'Brandenburg', 'brandenburg');
+
+        foreach (range(1, 49) as $number) {
+            $this->createFacility($city, $number, sprintf('SEO Einrichtung %02d', $number));
+        }
+
+        foreach ([1, 2, 3] as $page) {
+            $canonical = $page === 1
+                ? route('region.show')
+                : route('region.show', ['page' => $page]);
+            $title = $page === 1
+                ? 'Pflegeeinrichtungen in Brandenburg – PflegeIndex'
+                : "Pflegeeinrichtungen in Brandenburg – Seite {$page} – PflegeIndex";
+            $description = $page === 1
+                ? '49 Pflegeeinrichtungen in 1 Orten Brandenburgs entdecken.'
+                : "Seite {$page} mit weiteren Pflegeeinrichtungen in Brandenburg.";
+            $response = $this->get(route('region.show', ['page' => $page]))->assertOk();
+
+            $response
+                ->assertSee('<title>'.$title.'</title>', false)
+                ->assertSee('<meta name="description" content="'.$description.'">', false)
+                ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
+                ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+                ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+                ->assertSee('<meta property="og:url" content="'.$canonical.'">', false);
+
+            $this->assertSame(
+                $canonical,
+                $this->jsonLdOfType($response->getContent(), 'CollectionPage')['url'],
+            );
+        }
+    }
+
     private function createCity(string $name, string $slug, string $state, string $stateSlug): City
     {
         return City::create([

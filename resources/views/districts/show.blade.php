@@ -5,12 +5,21 @@
     $districtName = $district->display_name;
     $areaLabel = $isCounty ? "Landkreis {$districtName}" : $districtName;
     $heading = $isCounty ? "Pflegeheime im Landkreis {$districtName}" : "Pflegeheime in {$districtName}";
-    $pageTitle = "{$heading} | PflegeIndex";
+    $currentPage = $facilities->currentPage();
+    $pageTitle = $currentPage > 1
+        ? "{$heading} – Seite {$currentPage} | PflegeIndex"
+        : "{$heading} | PflegeIndex";
     $cityLabel = $linkedCityCount === 1 ? 'einem Ort' : "{$linkedCityCount} Orten";
-    $pageDescription = $isCounty
-        ? "{$facilityCount} Pflegeeinrichtungen in {$cityLabel} im Landkreis {$districtName}. Angebote vergleichen und passende Einrichtungen finden."
-        : "{$facilityCount} Pflegeeinrichtungen in {$districtName}. Angebote vergleichen und passende Einrichtungen finden.";
-    $canonicalUrl = route('districts.show', $district->slug);
+    $pageDescription = $currentPage > 1
+        ? ($isCounty
+            ? "Seite {$currentPage} mit weiteren Pflegeeinrichtungen im Landkreis {$districtName}."
+            : "Seite {$currentPage} mit weiteren Pflegeeinrichtungen in {$districtName}.")
+        : ($isCounty
+            ? "{$facilityCount} Pflegeeinrichtungen in {$cityLabel} im Landkreis {$districtName}. Angebote vergleichen und passende Einrichtungen finden."
+            : "{$facilityCount} Pflegeeinrichtungen in {$districtName}. Angebote vergleichen und passende Einrichtungen finden.");
+    $canonicalUrl = $currentPage > 1
+        ? route('districts.show', [$district->slug, 'page' => $currentPage])
+        : route('districts.show', $district->slug);
     $itemList = $facilities->map(fn ($facility, $index) => [
         '@type' => 'ListItem',
         'position' => ($facilities->firstItem() ?? 1) + $index,

@@ -123,9 +123,44 @@ class CityPageTest extends TestCase
             ->assertSee('Einrichtung 25')
             ->assertDontSee('Einrichtung 01')
             ->assertSee('Seite 2 von 2')
-            ->assertSee('<link rel="canonical" href="'.route('cities.show', $city).'">', false);
+            ->assertSee('<link rel="canonical" href="'.route('cities.show', [$city, 'page' => 2]).'">', false);
 
         $this->assertSame(2, $secondPage->viewData('facilities')->currentPage());
+    }
+
+    public function test_city_pagination_has_page_specific_seo_metadata(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam', 'Brandenburg', 'brandenburg');
+
+        foreach (range(1, 49) as $number) {
+            $this->createFacility($city, $number, sprintf('SEO Einrichtung %02d', $number), 'Ambulante Pflege');
+        }
+
+        foreach ([1, 2, 3] as $page) {
+            $canonical = $page === 1
+                ? route('cities.show', $city)
+                : route('cities.show', [$city, 'page' => $page]);
+            $title = $page === 1
+                ? 'Pflegeheime in Potsdam – PflegeIndex'
+                : "Pflegeheime in Potsdam – Seite {$page} – PflegeIndex";
+            $description = $page === 1
+                ? '49 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.'
+                : "Seite {$page} mit weiteren Pflegeeinrichtungen in Potsdam.";
+            $response = $this->get(route('cities.show', [$city, 'page' => $page]))->assertOk();
+
+            $response
+                ->assertSee('<title>'.$title.'</title>', false)
+                ->assertSee('<meta name="description" content="'.$description.'">', false)
+                ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
+                ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+                ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+                ->assertSee('<meta property="og:url" content="'.$canonical.'">', false);
+
+            $this->assertSame(
+                $canonical,
+                $this->jsonLdOfType($response->getContent(), 'CollectionPage')['url'],
+            );
+        }
     }
 
     public function test_city_facilities_with_equal_names_are_stably_sorted_by_id(): void
@@ -219,5 +254,21 @@ class CityPageTest extends TestCase
             'care_types' => [$type],
             'features' => [],
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function jsonLdOfType(string $content, string $type): array
+    {
+        preg_match_all('/<script type="application\/ld\+json">(.*?)<\/script>/s', $content, $matches);
+
+        foreach ($matches[1] ?? [] as $json) {
+            $schema = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+            if (($schema['@type'] ?? null) === $type) {
+                return $schema;
+            }
+        }
+
+        $this->fail("JSON-LD type {$type} was not found.");
     }
 }

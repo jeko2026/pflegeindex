@@ -179,6 +179,37 @@ class DirectoryCorePageTest extends TestCase
         $this->assertSame('Sortierung 25', $secondPage->items()[0]->address);
     }
 
+    public function test_directory_pagination_has_page_specific_seo_metadata(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam');
+
+        foreach (range(1, 49) as $number) {
+            $this->createFacility(
+                $city,
+                sprintf('SEO Einrichtung %02d', $number),
+                'Ambulante Pflege',
+            );
+        }
+
+        foreach ([1, 2, 3] as $page) {
+            $canonical = $page === 1
+                ? route('directory.index')
+                : route('directory.index', ['page' => $page]);
+            $title = $page === 1
+                ? 'Pflegeangebote finden – PflegeIndex'
+                : "Pflegeangebote finden – Seite {$page} – PflegeIndex";
+            $description = $page === 1
+                ? 'Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.'
+                : "Seite {$page} mit weiteren Pflegeangeboten in Brandenburg.";
+            $response = $this->get(route('directory.index', ['page' => $page]))->assertOk();
+
+            $response
+                ->assertSee('<title>'.$title.'</title>', false)
+                ->assertSee('<meta name="description" content="'.$description.'">', false)
+                ->assertSee('<link rel="canonical" href="'.$canonical.'">', false);
+        }
+    }
+
     public function test_directory_shows_the_existing_empty_state(): void
     {
         $this->get(route('directory.index', ['q' => 'nicht-vorhanden']))

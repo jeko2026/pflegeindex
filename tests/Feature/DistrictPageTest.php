@@ -182,6 +182,42 @@ class DistrictPageTest extends TestCase
             ->assertSee('Seite 2 von 2');
     }
 
+    public function test_district_pagination_has_page_specific_seo_metadata(): void
+    {
+        $district = $this->createDistrict('Barnim', 'barnim', 'landkreis');
+        $city = $this->createLinkedCity($district, 'Bernau', 'bernau');
+
+        foreach (range(1, 49) as $number) {
+            $this->createFacility($city, sprintf('SEO Einrichtung %02d', $number));
+        }
+
+        foreach ([1, 2, 3] as $page) {
+            $canonical = $page === 1
+                ? route('districts.show', $district->slug)
+                : route('districts.show', [$district->slug, 'page' => $page]);
+            $title = $page === 1
+                ? 'Pflegeheime im Landkreis Barnim | PflegeIndex'
+                : "Pflegeheime im Landkreis Barnim – Seite {$page} | PflegeIndex";
+            $description = $page === 1
+                ? '49 Pflegeeinrichtungen in einem Ort im Landkreis Barnim. Angebote vergleichen und passende Einrichtungen finden.'
+                : "Seite {$page} mit weiteren Pflegeeinrichtungen im Landkreis Barnim.";
+            $response = $this->get(route('districts.show', [$district->slug, 'page' => $page]))->assertOk();
+
+            $response
+                ->assertSee('<title>'.$title.'</title>', false)
+                ->assertSee('<meta name="description" content="'.$description.'">', false)
+                ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
+                ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+                ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+                ->assertSee('<meta property="og:url" content="'.$canonical.'">', false);
+
+            $this->assertSame(
+                $canonical,
+                $this->jsonLdOfType($response->getContent(), 'CollectionPage')['url'],
+            );
+        }
+    }
+
     public function test_brandenburg_page_lists_14_landkreise_then_4_cities_only_on_first_page(): void
     {
         $districts = collect();

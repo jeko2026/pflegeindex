@@ -1,9 +1,16 @@
 @extends('layouts.app')
 
 @php
-    $pageTitle = "Pflegeheime in {$city->name} – PflegeIndex";
-    $pageDescription = "{$facilityCount} Pflegeeinrichtungen in {$city->name}: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.";
-    $canonicalUrl = route('cities.show', $city);
+    $currentPage = $facilities->currentPage();
+    $pageTitle = $currentPage > 1
+        ? "Pflegeheime in {$city->name} – Seite {$currentPage} – PflegeIndex"
+        : "Pflegeheime in {$city->name} – PflegeIndex";
+    $pageDescription = $currentPage > 1
+        ? "Seite {$currentPage} mit weiteren Pflegeeinrichtungen in {$city->name}."
+        : "{$facilityCount} Pflegeeinrichtungen in {$city->name}: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.";
+    $canonicalUrl = $currentPage > 1
+        ? route('cities.show', [$city, 'page' => $currentPage])
+        : route('cities.show', $city);
 @endphp
 
 @section('title', $pageTitle)

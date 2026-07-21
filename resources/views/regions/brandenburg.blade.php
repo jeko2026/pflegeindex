@@ -1,9 +1,16 @@
 @extends('layouts.app')
 
 @php
-    $pageTitle = 'Pflegeeinrichtungen in Brandenburg – PflegeIndex';
-    $pageDescription = "{$facilityCount} Pflegeeinrichtungen in {$cities->count()} Orten Brandenburgs entdecken.";
-    $pageUrl = route('region.show');
+    $currentPage = $facilities->currentPage();
+    $pageTitle = $currentPage > 1
+        ? "Pflegeeinrichtungen in Brandenburg – Seite {$currentPage} – PflegeIndex"
+        : 'Pflegeeinrichtungen in Brandenburg – PflegeIndex';
+    $pageDescription = $currentPage > 1
+        ? "Seite {$currentPage} mit weiteren Pflegeeinrichtungen in Brandenburg."
+        : "{$facilityCount} Pflegeeinrichtungen in {$cities->count()} Orten Brandenburgs entdecken.";
+    $pageUrl = $currentPage > 1
+        ? route('region.show', ['page' => $currentPage])
+        : route('region.show');
     $ogImageUrl = asset('assets/og-image.png');
     $collectionPageSchema = [
         '@context' => 'https://schema.org',
@@ -26,6 +33,7 @@
 
 @section('title', $pageTitle)
 @section('description', $pageDescription)
+@section('canonical', $pageUrl)
 
 @push('head')
     <meta property="og:type" content="website">

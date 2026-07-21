@@ -1,7 +1,21 @@
 @extends('layouts.app')
 
-@section('title', 'Pflegeangebote finden – PflegeIndex')
-@section('description', 'Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.')
+@php
+    $currentPage = $facilities->currentPage();
+    $pageTitle = $currentPage > 1
+        ? "Pflegeangebote finden – Seite {$currentPage} – PflegeIndex"
+        : 'Pflegeangebote finden – PflegeIndex';
+    $pageDescription = $currentPage > 1
+        ? "Seite {$currentPage} mit weiteren Pflegeangeboten in Brandenburg."
+        : 'Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.';
+    $canonicalUrl = $currentPage > 1
+        ? route('directory.index', ['page' => $currentPage])
+        : route('directory.index');
+@endphp
+
+@section('title', $pageTitle)
+@section('description', $pageDescription)
+@section('canonical', $canonicalUrl)
 
 @if($hasFilterParameters)
     @push('head')
