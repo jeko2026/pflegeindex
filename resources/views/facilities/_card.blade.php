@@ -1,7 +1,7 @@
 <article class="result-card">
     <div class="result-card__top">
         <span class="type-badge">{{ $facility->type }}</span>
-        <span class="source-badge">Offizieller Datensatz</span>
+        <span class="source-badge">Amtliche Grunddaten</span>
     </div>
     <h2><a href="{{ $facility->url ?? route('facilities.show', [$facility->city, $facility]) }}">{{ $facility->name }}</a></h2>
     <p class="address">

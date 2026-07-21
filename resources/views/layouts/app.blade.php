@@ -8,7 +8,7 @@
     <link rel="canonical" href="@yield('canonical', url()->current())">
     <title>@yield('title', 'PflegeIndex – Pflege einfach finden')</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
-    <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260721-1">
+    <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260721-2">
     @stack('head')
     <script defer src="{{ asset('assets/app.js') }}"></script>
 </head>

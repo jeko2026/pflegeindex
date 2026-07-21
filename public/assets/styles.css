@@ -199,6 +199,8 @@ img, svg { display: block; }
 .detail-heading h1, .detail-address, .detail-section { overflow-wrap: anywhere; }
 .detail-address { margin: 14px 0 0; display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .detail-address svg { width: 19px; fill: none; stroke: var(--green-dark); stroke-width: 1.8; }
+.source-explanation { margin: 14px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.mobile-contact-actions { display: none; }
 .detail-section { margin-top: 17px; padding: 30px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
 .detail-section h2 { margin: 0 0 14px; color: var(--navy-dark); font-family: "Manrope",sans-serif; font-size: 21px; }
 .detail-section > p { margin: 0; color: var(--muted); line-height: 1.7; }
@@ -236,6 +238,8 @@ img, svg { display: block; }
 .contact-card small { margin-top: 10px; display: block; color: rgba(255,255,255,.65); text-align: center; font-size: 12px; }
 .contact-route { display: block; box-sizing: border-box; margin-top: 20px; padding: 12px; color: #fff; border: 1px solid rgba(255,255,255,.34); border-radius: 10px; font-weight: 750; text-align: center; text-decoration: none; }
 .contact-route:hover { background: rgba(255,255,255,.1); }
+.contact-report { display: block; margin-top: 15px; color: rgba(255,255,255,.78); font-size: 13px; text-align: center; text-decoration: underline; text-underline-offset: 3px; }
+.contact-report:hover, .contact-report:focus-visible { color: #fff; }
 
 .lexicon-page { padding: 45px 0 90px; }
 .lexicon-alphabet { padding: 15px; display: flex; flex-wrap: wrap; gap: 7px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
@@ -333,6 +337,10 @@ img, svg { display: block; }
   .filter-panel, .contact-card { position: static; }
   .city-grid { grid-template-columns: 1fr; }
   .detail-layout { grid-template-columns: minmax(0,1fr); }
+  .mobile-contact-actions { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit,minmax(88px,1fr)); gap: 8px; }
+  .mobile-contact-actions a { min-height: 44px; padding: 9px 12px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--navy); border-radius: 9px; color: var(--navy); background: #fff; font-size: 14px; font-weight: 750; text-align: center; text-decoration: none; }
+  .mobile-contact-actions a:hover { color: #fff; background: var(--navy); }
+  .mobile-contact-actions a:focus-visible { outline: 3px solid rgba(22,58,99,.28); outline-offset: 2px; }
   .lexicon-intro-note { grid-template-columns: 1fr; gap: 7px; }
   .lexicon-detail-layout { grid-template-columns: 1fr; }
   .lexicon-sidebar { position: static; }

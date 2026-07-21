@@ -165,8 +165,69 @@ class DirectoryPagesTest extends TestCase
             ->assertOk()
             ->assertSee('mailto:kontakt@example.de', false)
             ->assertSee('E-Mail senden')
+            ->assertSee('aria-label="Schnellkontakt"', false)
+            ->assertSee('>E-Mail</a>', false)
+            ->assertDontSee('>Anrufen</a>', false)
+            ->assertDontSee('>Website</a>', false)
             ->assertSee('In Google Maps öffnen')
             ->assertSee('google.com/maps/search/?api=1&amp;query=', false);
+    }
+
+    public function test_facility_page_shows_mobile_quick_actions_only_for_available_contacts(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'phone' => '+49331234567',
+            'email' => null,
+            'website' => 'https://example.de/pflege',
+        ]);
+
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $quickActions = $this->mobileContactActionsHtml($response);
+
+        $this->assertStringContainsString('aria-label="Schnellkontakt"', $quickActions);
+        $this->assertStringContainsString('href="tel:+49331234567">Anrufen</a>', $quickActions);
+        $this->assertStringContainsString('href="https://example.de/pflege"', $quickActions);
+        $this->assertStringContainsString('>Website</a>', $quickActions);
+        $this->assertStringNotContainsString('>E-Mail</a>', $quickActions);
+        $this->assertTrue(
+            strpos($quickActions, '>Anrufen</a>') < strpos($quickActions, '>Website</a>'),
+        );
+
+        $facility->update(['phone' => null, 'website' => null]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertDontSee('aria-label="Schnellkontakt"', false);
+    }
+
+    public function test_facility_page_has_prefilled_data_correction_mailto(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $canonicalUrl = route('facilities.show', [$city, $facility]);
+        $mailto = 'mailto:info@pflegeindex.com?subject='.rawurlencode('Datenfehler PflegeIndex')
+            .'&body='.rawurlencode("Einrichtung: {$facility->name}\nSeite: {$canonicalUrl}\n\nHinweis:\n");
+
+        $this->get($canonicalUrl)
+            ->assertOk()
+            ->assertSee('Datenfehler melden')
+            ->assertSee(e($mailto), false);
+    }
+
+    public function test_facility_pages_distinguish_official_base_data_from_editorial_additions(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('Amtliche Grunddaten')
+            ->assertSee('Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.')
+            ->assertDontSee('Offizieller Datensatz');
+
+        $this->get(route('cities.show', $city))
+            ->assertOk()
+            ->assertSee('Amtliche Grunddaten')
+            ->assertDontSee('Offizieller Datensatz');
     }
 
     public function test_facility_page_shows_other_facilities_from_the_same_city_and_links_to_the_city(): void
@@ -465,6 +526,20 @@ class DirectoryPagesTest extends TestCase
         $end = strpos($content, '</section>', $start);
 
         return substr($content, $start, $end - $start + strlen('</section>'));
+    }
+
+    private function mobileContactActionsHtml(TestResponse $response): string
+    {
+        $content = $response->getContent();
+        $start = strpos($content, '<nav class="mobile-contact-actions"');
+
+        if ($start === false) {
+            return '';
+        }
+
+        $end = strpos($content, '</nav>', $start);
+
+        return substr($content, $start, $end - $start + strlen('</nav>'));
     }
 
     private function headHtml(TestResponse $response): string

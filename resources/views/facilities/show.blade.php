@@ -23,6 +23,8 @@
     $hasDirectContact = filled($facility->phone) || filled($facility->email) || filled($displayWebsite);
     $mapQuery = rawurlencode("{$facility->name}, {$facility->address}, {$facility->postal_code} {$city->name}, Deutschland");
     $googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query='.$mapQuery;
+    $correctionMailto = 'mailto:info@pflegeindex.com?subject='.rawurlencode('Datenfehler PflegeIndex')
+        .'&body='.rawurlencode("Einrichtung: {$facility->name}\nSeite: {$canonicalUrl}\n\nHinweis:\n");
 @endphp
 
 @push('head')
@@ -123,9 +125,17 @@
     <div class="container detail-layout">
         <div class="detail-main">
             <div class="detail-heading">
-                <div><span class="type-badge">{{ $facility->type }}</span><span class="source-badge">Offizieller Datensatz</span></div>
+                <div><span class="type-badge">{{ $facility->type }}</span><span class="source-badge">Amtliche Grunddaten</span></div>
                 <h1>{{ $facility->name }}</h1>
+                @if($hasDirectContact)
+                    <nav class="mobile-contact-actions" aria-label="Schnellkontakt">
+                        @if($facility->phone)<a href="tel:{{ $facility->phone }}">Anrufen</a>@endif
+                        @if($displayWebsite)<a href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website</a>@endif
+                        @if($facility->email)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
+                    </nav>
+                @endif
                 <p class="detail-address"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg> {{ $facility->address }}, {{ $facility->postal_code }} {{ $city->name }}</p>
+                <p class="source-explanation">Die amtlichen Grunddaten stammen vom LASV; Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.</p>
             </div>
             <section class="detail-section">
                 <h2>{{ $editorialView ? 'Fährmann Pflege in Angermünde: Leistungen und Wohnangebote' : 'Über diese Einrichtung' }}</h2>
@@ -134,7 +144,7 @@
                 @elseif(filled($facility->description))
                     <p>{!! nl2br(e($facility->description)) !!}</p>
                 @else
-                    <p>{{ $facility->name }} ist als „{{ $facility->type }}“ im offiziellen Einrichtungsverzeichnis des Pflegefonds Brandenburg geführt. Die Einrichtung befindet sich in {{ $city->name }}.</p>
+                    <p>{{ $facility->name }} ist als „{{ $facility->type }}“ im amtlichen Einrichtungsverzeichnis des Pflegefonds Brandenburg geführt. Die Einrichtung befindet sich in {{ $city->name }}.</p>
                 @endif
                 @if(!$editorialView && $facility->description_checked_at && !empty($facility->description_sources))
                     <div class="description-sources">
@@ -146,7 +156,7 @@
                         <small>Geprüft am {{ $facility->description_checked_at->format('d.m.Y') }}</small>
                     </div>
                 @endif
-                <div class="notice notice--compact"><strong>Datenquelle:</strong> Landesamt für Soziales und Versorgung Brandenburg, Stand 31.12.2025. Basisdaten unter Datenlizenz Deutschland – Zero – Version 2.0.</div>
+                <div class="notice notice--compact"><strong>Amtliche Grunddaten:</strong> Landesamt für Soziales und Versorgung Brandenburg, Stand 31.12.2025. Veröffentlicht unter Datenlizenz Deutschland – Zero – Version 2.0.</div>
             </section>
             <section class="detail-section"><h2>Adresse</h2><p><strong>{{ $facility->name }}</strong><br>{{ $facility->address }}<br>{{ $facility->postal_code }} {{ $city->name }}</p></section>
             <section class="detail-section"><h2>Einrichtungsart</h2><div class="check-grid">@foreach($facility->care_types ?? [$facility->type] as $careType)<span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>{{ $careType }}</span>@endforeach</div></section>
@@ -176,10 +186,11 @@
                 @endif
             @else
                 <h2 class="contact-phone contact-phone--pending">Telefon wird ergänzt</h2>
-                <p>Der offizielle Ausgangsdatensatz enthält keine Telefonnummer. Der Kontakt wird separat recherchiert und geprüft.</p>
+                <p>Der amtliche Grunddatensatz enthält keine Telefonnummer. Der Kontakt wird separat recherchiert und geprüft.</p>
                 <small>Kontakt wird erst nach Prüfung freigeschaltet</small>
             @endif
             <a class="contact-route" href="{{ $googleMapsUrl }}" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
+            <a class="contact-report" href="{{ $correctionMailto }}">Datenfehler melden</a>
         </aside>
     </div>
     @if($relatedFacilities->isNotEmpty())
