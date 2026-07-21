@@ -24,7 +24,8 @@ Verified by: ____________________
 ## Legal pages
 
 - [ ] **Impressum:** real operator name, complete address, responsible person and contact details are present; no placeholders remain.
-- [ ] **Datenschutz:** real controller address, hosting provider and applicable processing information are present; no draft warning remains.
+- [ ] **Datenschutz:** controller details and applicable hosting, log, session and external-resource processing are described; no draft warning remains.
+- [ ] **Über das Projekt:** the directory is identified as independent and non-official, and its data limitations are stated.
 
 ## Automated and SEO verification
 
@@ -36,6 +37,7 @@ Verified by: ____________________
 ## Operations
 
 - [ ] `/up` returns HTTP 200.
+- [ ] The separately documented external resources used by Laravel's `/up` status view are still accurate.
 - [ ] `APP_ENV=production`, `APP_DEBUG=false` and the production `APP_URL` are confirmed without exposing secrets.
 - [ ] Laravel configuration, route and view caches were rebuilt.
 - [ ] No new critical errors appear in Laravel or hosting logs.

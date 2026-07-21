@@ -6,6 +6,18 @@ The project follows Semantic Versioning.
 
 ---
 
+## [Unreleased]
+
+### Added
+- Added finalized minimal legal and project-information pages with public routes and footer navigation.
+- Added a reproducible production package builder with split private-core, public-webroot and manifest outputs.
+
+### Changed
+- Documented actual public-page, admin-session and `/up` external-resource behavior in the privacy notice.
+- Excluded the unused zero-byte ICO file from production packages; the active SVG favicon remains included.
+
+---
+
 ## [1.0.0-rc.1] - 2026-07-19
 
 PflegeIndex v1.0 Release Candidate baseline.

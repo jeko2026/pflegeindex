@@ -44,7 +44,7 @@
             <div class="footer-column">
                 <strong>PflegeIndex</strong>
                 <a href="{{ route('lexicon.index') }}">Pflegelexikon</a>
-                <a href="{{ route('pages.about') }}">Über uns</a>
+                <a href="{{ route('pages.about') }}">Über das Projekt</a>
                 <a href="{{ route('region.show') }}">Brandenburg</a>
                 <a href="mailto:info@pflegeindex.com">Kontakt</a>
                 <a href="{{ route('pages.imprint') }}">Impressum</a>

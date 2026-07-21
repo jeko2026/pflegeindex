@@ -89,7 +89,14 @@ operations and enum cases remain supported for compatibility.
 
 Not yet ready for production release:
 
+- production-only Composer dependencies and PHP 8.2.27 platform verification;
+- explicit selection of SQLite deployment Scenario A or B;
 - production deployment, backup and rollback checklist verification.
+
+The minimal Impressum, Datenschutz and project-information pages are prepared
+for release. A reproducible split-package builder is available, but it remains
+blocked from producing final ZIP archives until PHP CLI and Composer are
+available locally.
 
 ## Next goal
 

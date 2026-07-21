@@ -22,7 +22,11 @@ HTTP. Do not print `APP_KEY`, passwords or other environment secrets.
 - [ ] The working tree is clean: `git status --short` returns no output.
 - [ ] PHPUnit and Pint passed for the exact release commit.
 - [ ] `docs/RELEASE_VERIFICATION.md` is ready for post-deployment use.
-- [ ] Impressum and Datenschutz contain the real operator and hosting details.
+- [ ] Impressum contains the agreed operator details and Datenschutz accurately
+      describes the configured hosting and processing behavior without placeholders.
+- [ ] A verified production package was built from the approved release commit;
+      its Composer status and checksums are complete.
+- [ ] SQLite Scenario A or B from the package manifest was selected explicitly.
 - [ ] The server runs PHP 8.2 or newer with the required SQLite extensions.
 - [ ] The production `.env` contains `APP_ENV=production`, `APP_DEBUG=false`
       and `APP_URL=https://pflegeindex.com`.

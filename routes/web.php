@@ -25,7 +25,8 @@ Route::get('/brandenburg/{city:slug}.html', [CityController::class, 'show'])
     ->name('cities.show');
 Route::get('/pflegelexikon.html', [LexiconController::class, 'index'])->name('lexicon.index');
 Route::get('/pflegelexikon/{slug}.html', [LexiconController::class, 'show'])->name('lexicon.show');
-Route::view('/ueber-uns.html', 'pages.about')->name('pages.about');
+Route::view('/ueber-das-projekt.html', 'pages.about')->name('pages.about');
+Route::redirect('/ueber-uns.html', '/ueber-das-projekt.html', 301);
 Route::view('/impressum.html', 'pages.imprint')->name('pages.imprint');
 Route::view('/datenschutz.html', 'pages.privacy')->name('pages.privacy');
 Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
