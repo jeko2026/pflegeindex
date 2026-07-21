@@ -160,4 +160,3 @@ class ExampleTest extends TestCase
         $this->fail("JSON-LD type {$type} was not found.");
     }
 }
-
