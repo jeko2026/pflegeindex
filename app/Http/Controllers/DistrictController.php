@@ -24,8 +24,7 @@ class DistrictController extends Controller
         PflegeEntryRepository $repository,
         PflegeEntryPresenter $presenter,
     ): View {
-        $district = GeoDistrict::query()
-            ->where('slug', $districtSlug)
+        $allDistricts = GeoDistrict::query()
             ->whereIn('type', ['landkreis', 'kreisfreie_stadt'])
             ->whereHas('state', function (Builder $stateQuery): void {
                 $stateQuery
@@ -33,7 +32,19 @@ class DistrictController extends Controller
                     ->where('slug', 'brandenburg')
                     ->whereHas('country', fn (Builder $countryQuery): Builder => $countryQuery->where('iso2', 'DE'));
             })
-            ->firstOrFail();
+            ->orderByRaw("CASE WHEN type = 'landkreis' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get();
+
+        /** @var GeoDistrict|null $district */
+        $district = $allDistricts->firstWhere('slug', $districtSlug);
+
+        abort_if($district === null, 404);
+
+        $otherDistricts = $allDistricts
+            ->reject(fn (GeoDistrict $d): bool => $d->id === $district->id)
+            ->take(8)
+            ->values();
 
         $linkedCities = City::query()
             ->whereNotNull('geo_municipality_id')
@@ -73,6 +84,7 @@ class DistrictController extends Controller
             'linkedCityCount' => $linkedCities->count(),
             'facilities' => $facilities,
             'facilityCount' => $facilities->total(),
+            'otherDistricts' => $otherDistricts,
         ]);
     }
 }

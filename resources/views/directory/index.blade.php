@@ -50,8 +50,17 @@
                 @forelse($facilities as $facility)
                     @include('facilities._card', ['facility' => $facility])
                 @empty
-                    <div class="empty-state"><h3>Keine passenden Einrichtungen</h3><p>Ändern Sie den Suchbegriff oder setzen Sie die Filter zurück.</p></div>
+                    <div class="empty-state">
+                        <h3>Keine passenden Einrichtungen</h3>
+                        <p>Ändern Sie den Suchbegriff oder setzen Sie die Filter zurück. Für die gewählte Kombination aus Suchbegriff und Filter wurden keine Einrichtungen gefunden.</p>
+                        <div class="empty-state__actions">
+                            <a class="primary-button" href="{{ route('directory.index') }}">Filter zurücksetzen</a>
+                            <a class="secondary-button" href="{{ route('region.show') }}">Alle Orte in Brandenburg</a>
+                            <a class="secondary-button" href="{{ route('home') }}">Zur Startseite</a>
+                        </div>
+                    </div>
                 @endforelse
+
             </div>
             <x-pagination :paginator="$facilities" />
         </section>

@@ -158,4 +158,30 @@
             </section>
         </div>
     </section>
+
+@if($otherDistricts->isNotEmpty())
+    <section class="section section--white" aria-labelledby="other-districts-title">
+        <div class="container">
+            <div class="section-heading section-heading--split">
+                <div>
+                    <p class="eyebrow">Brandenburg</p>
+                    <h2 id="other-districts-title">Weitere Landkreise</h2>
+                </div>
+                <a href="{{ route('region.show') }}">Alle Regionen</a>
+            </div>
+            <div class="city-grid">
+                @foreach($otherDistricts as $otherDistrict)
+                    <a class="city-card" href="{{ route('districts.show', $otherDistrict->slug) }}">
+                        <span class="city-card__pin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg></span>
+                        <span>
+                            <strong>{{ $otherDistrict->display_name }}</strong>
+                            <small>{{ $otherDistrict->type === 'landkreis' ? 'Landkreis' : 'Kreisfreie Stadt' }}</small>
+                        </span>
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </section>
+@endif
 @endsection

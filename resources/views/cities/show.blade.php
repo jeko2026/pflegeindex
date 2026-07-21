@@ -79,6 +79,9 @@
                 <ol class="breadcrumbs" style="margin:0">
                     <li><a href="{{ route('home') }}">Startseite</a></li>
                     <li><span aria-hidden="true">›</span><a href="{{ route('region.show') }}">Brandenburg</a></li>
+                    @if($city->geoMunicipality?->district)
+                        <li><span aria-hidden="true">›</span><a href="{{ route('districts.show', $city->geoMunicipality->district->slug) }}">{{ $city->geoMunicipality->district->display_name }}</a></li>
+                    @endif
                     <li aria-current="page"><span aria-hidden="true">›</span><span>{{ $city->name }}</span></li>
                 </ol>
             </nav>
@@ -107,4 +110,29 @@
             </section>
         </div>
     </section>
+
+    @if($nearbyCities->isNotEmpty())
+        <section class="section section--white" aria-labelledby="nearby-cities-title">
+            <div class="container">
+                <div class="section-heading section-heading--split">
+                    <div>
+                        <p class="eyebrow">Region</p>
+                        <h2 id="nearby-cities-title">Städte in der Nähe</h2>
+                    </div>
+                    @if($city->geoMunicipality?->district)
+                        <a href="{{ route('districts.show', $city->geoMunicipality->district->slug) }}">Alle Orte im {{ $city->geoMunicipality->district->display_name }}</a>
+                    @endif
+                </div>
+                <div class="city-grid">
+                    @foreach($nearbyCities as $nearbyCity)
+                        <a class="city-card" href="{{ route('cities.show', $nearbyCity) }}">
+                            <span class="city-card__pin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg></span>
+                            <span><strong>{{ $nearbyCity->name }}</strong><small>{{ $nearbyCity->facilities_count }} {{ $nearbyCity->facilities_count === 1 ? 'Einrichtung' : 'Einrichtungen' }}</small></span>
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
 @endsection
