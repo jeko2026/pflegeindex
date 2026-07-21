@@ -6,7 +6,6 @@
     $pageUrl = route('home');
     $organizationId = $pageUrl.'#organization';
     $websiteId = $pageUrl.'#website';
-    $ogImageUrl = asset('assets/og-image.png');
     $organizationSchema = [
         '@context' => 'https://schema.org',
         '@type' => 'Organization',
@@ -36,7 +35,6 @@
     <meta property="og:url" content="{{ $pageUrl }}">
     <meta property="og:site_name" content="PflegeIndex">
     <meta property="og:locale" content="de_DE">
-    <meta property="og:image" content="{{ $ogImageUrl }}">
     <script type="application/ld+json">{!! json_encode($websiteSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
     <script type="application/ld+json">{!! json_encode($organizationSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
 @endpush

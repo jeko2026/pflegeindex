@@ -32,6 +32,7 @@ Verified by: ____________________
 - [ ] **PHPUnit:** the complete test suite passes for the deployed commit.
 - [ ] **SEO:** title, meta description and canonical are correct on Home, Brandenburg, City and Facility pages.
 - [ ] **SEO:** expected Open Graph and JSON-LD are valid where implemented.
+- [ ] **Social image:** `https://pflegeindex.com/assets/og-image.png` returns HTTP 200 directly as `image/png`, and public pages use it for Open Graph and Twitter Cards.
 - [ ] **SEO:** `www` redirects permanently to `https://pflegeindex.com`.
 
 ## Operations

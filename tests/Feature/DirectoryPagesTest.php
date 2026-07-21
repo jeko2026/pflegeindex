@@ -66,9 +66,12 @@ class DirectoryPagesTest extends TestCase
         $this->assertStringContainsString('<meta property="og:url" content="'.$canonicalUrl.'">', $head);
         $this->assertStringContainsString('<meta property="og:site_name" content="PflegeIndex">', $head);
         $this->assertStringContainsString('<meta property="og:locale" content="de_DE">', $head);
+        $this->assertStringContainsString('<meta property="og:image" content="https://pflegeindex.com/assets/og-image.png">', $head);
+        $this->assertStringContainsString('<meta name="twitter:card" content="summary_large_image">', $head);
+        $this->assertStringContainsString('<meta name="twitter:image" content="https://pflegeindex.com/assets/og-image.png">', $head);
         $this->assertStringNotContainsString('content="Pflege & Wohnen "Am Park"', $content);
 
-        foreach (['og:type', 'og:title', 'og:description', 'og:url', 'og:site_name', 'og:locale'] as $property) {
+        foreach (['og:type', 'og:title', 'og:description', 'og:url', 'og:site_name', 'og:locale', 'og:image'] as $property) {
             $this->assertSame(1, substr_count($content, 'property="'.$property.'"'));
         }
     }

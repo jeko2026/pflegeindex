@@ -88,7 +88,7 @@ class RegionPageTest extends TestCase
         $title = 'Pflegeeinrichtungen in Brandenburg – PflegeIndex';
         $description = '0 Pflegeeinrichtungen in 0 Orten Brandenburgs entdecken.';
         $pageUrl = route('region.show');
-        $imageUrl = asset('assets/og-image.png');
+        $imageUrl = 'https://pflegeindex.com/assets/og-image.png';
         $response = $this->get($pageUrl)->assertOk();
 
         $response
@@ -98,7 +98,9 @@ class RegionPageTest extends TestCase
             ->assertSee('<meta property="og:url" content="'.$pageUrl.'">', false)
             ->assertSee('<meta property="og:site_name" content="PflegeIndex">', false)
             ->assertSee('<meta property="og:locale" content="de_DE">', false)
-            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false);
+            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false)
+            ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+            ->assertSee('<meta name="twitter:image" content="'.$imageUrl.'">', false);
 
         $collectionPage = $this->jsonLdOfType($response->getContent(), 'CollectionPage');
 

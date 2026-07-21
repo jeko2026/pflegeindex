@@ -40,6 +40,9 @@ class CityPageTest extends TestCase
             ->assertSee('<meta property="og:title" content="Pflegeeinrichtungen in Potsdam – PflegeIndex">', false)
             ->assertSee('<meta property="og:description" content="2 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.">', false)
             ->assertSee('<meta property="og:url" content="'.$canonicalUrl.'">', false)
+            ->assertSee('<meta property="og:image" content="https://pflegeindex.com/assets/og-image.png">', false)
+            ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+            ->assertSee('<meta name="twitter:image" content="https://pflegeindex.com/assets/og-image.png">', false)
             ->assertSee('<strong>2</strong><span>Einrichtungen</span>', false)
             ->assertSee('<strong>2</strong><span>Einrichtungsarten</span>', false);
 

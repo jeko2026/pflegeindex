@@ -31,7 +31,7 @@ class ExampleTest extends TestCase
         $title = 'PflegeIndex – Pflege einfach finden';
         $description = 'Pflegeheime, Pflegedienste, Tagespflege und Krankenhäuser in Brandenburg finden.';
         $pageUrl = route('home');
-        $imageUrl = asset('assets/og-image.png');
+        $imageUrl = 'https://pflegeindex.com/assets/og-image.png';
         $response = $this->get($pageUrl)->assertOk();
 
         $response
@@ -41,7 +41,9 @@ class ExampleTest extends TestCase
             ->assertSee('<meta property="og:url" content="'.$pageUrl.'">', false)
             ->assertSee('<meta property="og:site_name" content="PflegeIndex">', false)
             ->assertSee('<meta property="og:locale" content="de_DE">', false)
-            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false);
+            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false)
+            ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+            ->assertSee('<meta name="twitter:image" content="'.$imageUrl.'">', false);
 
         $website = $this->jsonLdOfType($response->getContent(), 'WebSite');
         $organization = $this->jsonLdOfType($response->getContent(), 'Organization');

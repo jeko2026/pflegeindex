@@ -6,6 +6,9 @@
     <meta name="description" content="@yield('description', 'Pflegeeinrichtungen mit PflegeIndex finden.')">
     <meta name="theme-color" content="#163a63">
     <link rel="canonical" href="@yield('canonical', url()->current())">
+    <meta property="og:image" content="https://pflegeindex.com/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://pflegeindex.com/assets/og-image.png">
     <title>@yield('title', 'PflegeIndex – Pflege einfach finden')</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260721-2">
