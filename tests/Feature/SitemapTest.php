@@ -66,6 +66,7 @@ class SitemapTest extends TestCase
             ->assertSee($expectedSecondFacilityLastmod, false)
             ->assertDontSee(route('pages.imprint'), false)
             ->assertDontSee(route('pages.privacy'), false)
+            ->assertDontSee('/up', false)
             ->assertDontSee('/admin', false);
 
         $this->assertNotFalse(simplexml_load_string($response->getContent()));

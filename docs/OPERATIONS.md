@@ -5,7 +5,9 @@ It does not replace hosting-provider monitoring or the deployment checklist.
 
 ## Daily checks
 
-- Confirm `/up` and the home page return HTTP 200 over HTTPS.
+- Confirm `/up` returns HTTP 200 with the exact plain-text body `OK`, then
+  confirm the home page returns HTTP 200 over HTTPS. `/up` is a Laravel
+  liveness check; it does not query the database or contact external services.
 - Open one City and one Facility page and confirm assets load without browser
   console or server errors.
 - Check the latest Laravel log entries for new `ERROR`, `CRITICAL` or repeated

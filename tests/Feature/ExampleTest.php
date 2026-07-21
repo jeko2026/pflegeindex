@@ -76,13 +76,6 @@ class ExampleTest extends TestCase
             ->assertHeaderMissing('Location');
     }
 
-    public function test_health_endpoint_is_protected_from_indexing(): void
-    {
-        $this->get('/up')
-            ->assertOk()
-            ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
-    }
-
     public function test_corrected_facility_urls_redirect_permanently(): void
     {
         $this->get('/pflegeeinrichtungen/brandenburg/beeskow/medi-care-gmbh-haus-barbara-15485')

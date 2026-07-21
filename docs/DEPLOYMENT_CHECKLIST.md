@@ -146,7 +146,7 @@ php artisan up
 
 Complete every item in `docs/RELEASE_VERIFICATION.md`. At minimum verify:
 
-- `/up` returns HTTP 200;
+- `/up` returns HTTP 200 with the exact plain-text body `OK` (liveness only; no database or external-service check);
 - home, Brandenburg, City and Facility pages render;
 - `/sitemap.xml` and `/robots.txt` use the production HTTPS host;
 - admin login works and protected admin routes reject guests;

@@ -36,8 +36,7 @@ Verified by: ____________________
 
 ## Operations
 
-- [ ] `/up` returns HTTP 200.
-- [ ] The separately documented external resources used by Laravel's `/up` status view are still accurate.
+- [ ] `/up` returns HTTP 200 with the exact plain-text body `OK`; it is a liveness check and does not verify the database or external services.
 - [ ] `APP_ENV=production`, `APP_DEBUG=false` and the production `APP_URL` are confirmed without exposing secrets.
 - [ ] Laravel configuration, route and view caches were rebuilt.
 - [ ] No new critical errors appear in Laravel or hosting logs.
