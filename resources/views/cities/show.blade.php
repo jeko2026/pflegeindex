@@ -3,8 +3,8 @@
 @php
     $currentPage = $facilities->currentPage();
     $pageTitle = $currentPage > 1
-        ? "Pflegeheime in {$city->name} – Seite {$currentPage} – PflegeIndex"
-        : "Pflegeheime in {$city->name} – PflegeIndex";
+        ? "Pflegeeinrichtungen in {$city->name} – Seite {$currentPage} – PflegeIndex"
+        : "Pflegeeinrichtungen in {$city->name} – PflegeIndex";
     $pageDescription = $currentPage > 1
         ? "Seite {$currentPage} mit weiteren Pflegeeinrichtungen in {$city->name}."
         : "{$facilityCount} Pflegeeinrichtungen in {$city->name}: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.";
@@ -85,7 +85,7 @@
                     <li aria-current="page"><span aria-hidden="true">›</span><span>{{ $city->name }}</span></li>
                 </ol>
             </nav>
-            <h1>Pflegeheime in {{ $city->name }}</h1>
+            <h1>Pflegeeinrichtungen in {{ $city->name }}</h1>
             <p class="page-hero__lead">Pflegeeinrichtungen in {{ $city->name }} mit Anschrift, Einrichtungsart und verfügbaren Kontaktdaten.</p>
         </div>
     </section>
@@ -97,7 +97,7 @@
             </div>
             <section aria-labelledby="city-facilities-title">
                 <div class="results-heading" style="margin-top:42px">
-                    <h2 id="city-facilities-title">Alle Pflegeheime in {{ $city->name }}</h2>
+                    <h2 id="city-facilities-title">Alle Pflegeeinrichtungen in {{ $city->name }}</h2>
                     <p>{{ $facilities->count() }} auf dieser Seite · alphabetisch sortiert</p>
                 </div>
                 <div class="notice">Basisdaten: Landesamt für Soziales und Versorgung Brandenburg, Stand 31.12.2025.</div>

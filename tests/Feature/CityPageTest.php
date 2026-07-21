@@ -27,9 +27,9 @@ class CityPageTest extends TestCase
 
         $response = $this->get($canonicalUrl)
             ->assertOk()
-            ->assertSee('<title>Pflegeheime in Potsdam – PflegeIndex</title>', false)
+            ->assertSee('<title>Pflegeeinrichtungen in Potsdam – PflegeIndex</title>', false)
             ->assertSee('<meta name="description" content="2 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.">', false)
-            ->assertSee('<h1>Pflegeheime in Potsdam</h1>', false)
+            ->assertSee('<h1>Pflegeeinrichtungen in Potsdam</h1>', false)
             ->assertSee($first->name)
             ->assertSee($second->name)
             ->assertDontSee($otherCity->name)
@@ -37,7 +37,7 @@ class CityPageTest extends TestCase
             ->assertSee('href="'.route('facilities.show', [$potsdam, $first]).'"', false)
             ->assertSee('href="'.route('facilities.show', [$potsdam, $second]).'"', false)
             ->assertSee('<link rel="canonical" href="'.$canonicalUrl.'">', false)
-            ->assertSee('<meta property="og:title" content="Pflegeheime in Potsdam – PflegeIndex">', false)
+            ->assertSee('<meta property="og:title" content="Pflegeeinrichtungen in Potsdam – PflegeIndex">', false)
             ->assertSee('<meta property="og:description" content="2 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.">', false)
             ->assertSee('<meta property="og:url" content="'.$canonicalUrl.'">', false)
             ->assertSee('<strong>2</strong><span>Einrichtungen</span>', false)
@@ -141,8 +141,8 @@ class CityPageTest extends TestCase
                 ? route('cities.show', $city)
                 : route('cities.show', [$city, 'page' => $page]);
             $title = $page === 1
-                ? 'Pflegeheime in Potsdam – PflegeIndex'
-                : "Pflegeheime in Potsdam – Seite {$page} – PflegeIndex";
+                ? 'Pflegeeinrichtungen in Potsdam – PflegeIndex'
+                : "Pflegeeinrichtungen in Potsdam – Seite {$page} – PflegeIndex";
             $description = $page === 1
                 ? '49 Pflegeeinrichtungen in Potsdam: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.'
                 : "Seite {$page} mit weiteren Pflegeeinrichtungen in Potsdam.";
@@ -186,7 +186,7 @@ class CityPageTest extends TestCase
 
         $emptyResponse = $this->get(route('cities.show', $emptyCity))
             ->assertOk()
-            ->assertSee('<h1>Pflegeheime in Leere Stadt</h1>', false)
+            ->assertSee('<h1>Pflegeeinrichtungen in Leere Stadt</h1>', false)
             ->assertSee('<strong>0</strong><span>Einrichtungen</span>', false);
 
         $this->assertSame(0, $emptyResponse->viewData('facilities')->total());

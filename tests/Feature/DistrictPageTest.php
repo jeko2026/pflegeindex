@@ -72,7 +72,7 @@ class DistrictPageTest extends TestCase
         $this->assertInstanceOf(PflegeEntryCardViewModel::class, $facilities->items()[0]);
 
         $response
-            ->assertSee('<h1>Pflegeheime im Landkreis Dahme-Spreewald</h1>', false)
+            ->assertSee('<h1>Pflegeeinrichtungen im Landkreis Dahme-Spreewald</h1>', false)
             ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
             ->assertSee('<meta property="og:type" content="website">', false)
             ->assertSee('<meta property="og:url" content="'.$canonical.'">', false)
@@ -130,8 +130,8 @@ class DistrictPageTest extends TestCase
 
         $response = $this->get(route('districts.show', $district->slug))
             ->assertOk()
-            ->assertSee('<title>Pflegeheime in Potsdam | PflegeIndex</title>', false)
-            ->assertSee('<h1>Pflegeheime in Potsdam</h1>', false)
+            ->assertSee('<title>Pflegeeinrichtungen in Potsdam | PflegeIndex</title>', false)
+            ->assertSee('<h1>Pflegeeinrichtungen in Potsdam</h1>', false)
             ->assertSee('Für Potsdam sind derzeit keine bestätigten Pflegeeinrichtungen verfügbar.')
             ->assertSee('<strong>1</strong><span>Ort</span>', false)
             ->assertDontSee(route('cities.show', $city), false)
@@ -196,8 +196,8 @@ class DistrictPageTest extends TestCase
                 ? route('districts.show', $district->slug)
                 : route('districts.show', [$district->slug, 'page' => $page]);
             $title = $page === 1
-                ? 'Pflegeheime im Landkreis Barnim | PflegeIndex'
-                : "Pflegeheime im Landkreis Barnim – Seite {$page} | PflegeIndex";
+                ? 'Pflegeeinrichtungen im Landkreis Barnim | PflegeIndex'
+                : "Pflegeeinrichtungen im Landkreis Barnim – Seite {$page} | PflegeIndex";
             $description = $page === 1
                 ? '49 Pflegeeinrichtungen in einem Ort im Landkreis Barnim. Angebote vergleichen und passende Einrichtungen finden.'
                 : "Seite {$page} mit weiteren Pflegeeinrichtungen im Landkreis Barnim.";

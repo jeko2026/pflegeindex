@@ -45,9 +45,9 @@
     <section class="home-hero">
         <div class="container hero-grid">
             <div class="hero-copy">
-                <p class="eyebrow">Das Pflegeverzeichnis für Deutschland</p>
+                <p class="eyebrow">PflegeIndex startet in Brandenburg</p>
                 <h1>Passende Pflege in Ihrer Nähe <span>finden.</span></h1>
-                <p class="hero-lead">PflegeIndex hilft Angehörigen und Pflegebedürftigen, Pflegeangebote übersichtlich zu entdecken und passende Einrichtungen zu vergleichen.</p>
+                <p class="hero-lead">PflegeIndex hilft Angehörigen und Pflegebedürftigen, Pflegeangebote in Brandenburg übersichtlich zu entdecken und passende Einrichtungen zu vergleichen.</p>
                 <form class="hero-search" method="get" action="{{ route('directory.index') }}">
                     <label class="field-wrap">
                         <span class="sr-only">Ort oder Postleitzahl</span>

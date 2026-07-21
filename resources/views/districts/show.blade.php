@@ -4,7 +4,7 @@
     $isCounty = $district->type === 'landkreis';
     $districtName = $district->display_name;
     $areaLabel = $isCounty ? "Landkreis {$districtName}" : $districtName;
-    $heading = $isCounty ? "Pflegeheime im Landkreis {$districtName}" : "Pflegeheime in {$districtName}";
+    $heading = $isCounty ? "Pflegeeinrichtungen im Landkreis {$districtName}" : "Pflegeeinrichtungen in {$districtName}";
     $currentPage = $facilities->currentPage();
     $pageTitle = $currentPage > 1
         ? "{$heading} – Seite {$currentPage} | PflegeIndex"
@@ -124,7 +124,7 @@
             @if($cities->isNotEmpty())
                 <section aria-labelledby="district-cities-title">
                     <div class="section-heading section-heading--split" style="margin-top:42px">
-                        <div><p class="eyebrow">Ortsverzeichnis</p><h2 id="district-cities-title">Pflegeheime nach Stadt</h2></div>
+                        <div><p class="eyebrow">Ortsverzeichnis</p><h2 id="district-cities-title">Pflegeeinrichtungen nach Stadt</h2></div>
                     </div>
                     <div class="city-grid">
                         @foreach($cities as $city)

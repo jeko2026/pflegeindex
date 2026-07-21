@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\City;
+use App\Models\Facility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -131,9 +133,30 @@ class ExampleTest extends TestCase
 
     public function test_homepage_shows_popular_searches_and_top_cities(): void
     {
+        $city = City::create([
+            'name' => 'Potsdam',
+            'slug' => 'potsdam',
+            'state' => 'Brandenburg',
+            'state_slug' => 'brandenburg',
+        ]);
+        Facility::create([
+            'source_id' => 'homepage-potsdam-1',
+            'city_id' => $city->id,
+            'name' => 'Pflege Potsdam',
+            'slug' => 'pflege-potsdam',
+            'postal_code' => '14467',
+            'address' => 'Musterstraße 1',
+            'type' => 'Ambulante Pflege',
+            'care_types' => ['Ambulante Pflege'],
+            'features' => [],
+        ]);
+
         $response = $this->get('/')->assertOk();
 
         $response
+            ->assertSee('PflegeIndex startet in Brandenburg')
+            ->assertSee('Pflegeangebote in Brandenburg übersichtlich zu entdecken')
+            ->assertSee('href="'.route('cities.show', $city).'">Potsdam</a>', false)
             ->assertSee('Beliebte Suchen')
             ->assertSee('Pflegedienst Potsdam')
             ->assertSee('Pflegeheim Cottbus')

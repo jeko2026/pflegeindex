@@ -52,9 +52,9 @@ class RegionPageTest extends TestCase
 
         $response = $this->get(route('region.show'))
             ->assertOk()
-            ->assertSee('Pflegeheime in Brandenburg')
-            ->assertSee('Pflegeheime nach Stadt')
-            ->assertSee('Alle Pflegeheime in Brandenburg')
+            ->assertSee('Pflegeeinrichtungen in Brandenburg')
+            ->assertSee('Pflegeeinrichtungen nach Stadt')
+            ->assertSee('Alle Pflegeeinrichtungen in Brandenburg')
             ->assertSee($potsdamFacility->name)
             ->assertSee($cottbusFacility->name)
             ->assertSee(route('facilities.show', [$potsdam, $potsdamFacility]), false)
@@ -120,7 +120,7 @@ class RegionPageTest extends TestCase
         }
 
         $firstPage = $this->get(route('region.show'))->assertOk();
-        $firstPage->assertSee('Pflegeheime nach Stadt')
+        $firstPage->assertSee('Pflegeeinrichtungen nach Stadt')
             ->assertSee(url('/brandenburg/potsdam.html'), false)
             ->assertSee('Einrichtung 01')
             ->assertSee('Einrichtung 24')
@@ -134,9 +134,9 @@ class RegionPageTest extends TestCase
 
         $this->get(route('region.show', ['page' => 2]))
             ->assertOk()
-            ->assertSee('Pflegeheime in Brandenburg')
-            ->assertSee('Alle Pflegeheime in Brandenburg')
-            ->assertDontSee('Pflegeheime nach Stadt')
+            ->assertSee('Pflegeeinrichtungen in Brandenburg')
+            ->assertSee('Alle Pflegeeinrichtungen in Brandenburg')
+            ->assertDontSee('Pflegeeinrichtungen nach Stadt')
             ->assertDontSee(url('/brandenburg/potsdam.html'), false)
             ->assertSee('Einrichtung 25')
             ->assertDontSee('Einrichtung 01')

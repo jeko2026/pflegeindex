@@ -49,7 +49,7 @@
 @section('content')
     <section class="page-hero">
         <div class="container">
-            <h1>Pflegeheime in Brandenburg</h1>
+            <h1>Pflegeeinrichtungen in Brandenburg</h1>
             <p class="page-hero__lead">Alle erfassten Pflegeangebote nach Stadt und Gemeinde – auf Basis des offiziellen Pflegefonds-Verzeichnisses.</p>
         </div>
     </section>
@@ -81,7 +81,7 @@
                     </section>
                 @endif
                 <section id="brandenburg-cities" aria-labelledby="brandenburg-cities-title">
-                    <div class="section-heading section-heading--split" style="margin-top:42px"><div><p class="eyebrow">Ortsverzeichnis</p><h2 id="brandenburg-cities-title">Pflegeheime nach Stadt</h2></div><a href="{{ route('directory.index') }}">Alle Einrichtungen durchsuchen</a></div>
+                    <div class="section-heading section-heading--split" style="margin-top:42px"><div><p class="eyebrow">Ortsverzeichnis</p><h2 id="brandenburg-cities-title">Pflegeeinrichtungen nach Stadt</h2></div><a href="{{ route('directory.index') }}">Alle Einrichtungen durchsuchen</a></div>
                     <div class="city-grid">
                         @foreach($cities as $city)
                             <a class="city-card" href="{{ url('/brandenburg/'.$city->slug.'.html') }}">
@@ -94,7 +94,7 @@
                 </section>
             @endif
             <section id="brandenburg-facilities" aria-labelledby="brandenburg-facilities-title">
-                <div class="results-heading" style="margin-top:72px"><h2 id="brandenburg-facilities-title">Alle Pflegeheime in Brandenburg</h2><p>{{ $facilities->count() }} auf dieser Seite · nach Ort und Name sortiert</p></div>
+                <div class="results-heading" style="margin-top:72px"><h2 id="brandenburg-facilities-title">Alle Pflegeeinrichtungen in Brandenburg</h2><p>{{ $facilities->count() }} auf dieser Seite · nach Ort und Name sortiert</p></div>
                 <div class="results-list" style="margin-top:16px">
                     @foreach($facilities as $facility)
                         @include('facilities._card', ['facility' => $facility])
