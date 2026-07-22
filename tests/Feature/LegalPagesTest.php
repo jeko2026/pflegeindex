@@ -46,15 +46,53 @@ class LegalPagesTest extends TestCase
         $this->get('https://pflegeindex.com/datenschutz.html')
             ->assertOk()
             ->assertSee('Verantwortlicher:')
-            ->assertSee('Hosting und Server-Protokolle')
+            ->assertSee('Hosting')
+            ->assertSee('Server-Logfiles und Anwendungsprotokolle')
+            ->assertSee('Rechtsgrundlagen')
             ->assertSee('Suche und Filter')
             ->assertSee('als URL-Parameter')
+            ->assertSee('Kontaktaufnahme per E-Mail')
             ->assertSee('Cookies und Sitzungen')
-            ->assertSee('keine Analyse-, Werbe- oder Trackingdienste')
-            ->assertSee('Bunny Fonts')
-            ->assertSee('jsDelivr')
-            ->assertSee('keine Karten ein')
+            ->assertSee('pflegeindex-session')
+            ->assertSee('XSRF-TOKEN')
+            ->assertSee('Analyse-, Marketing- oder Third-Party-Cookies')
+            ->assertSee('Rechte der betroffenen Personen')
+            ->assertSee('Beschwerderecht')
+            ->assertSee('SSL-/TLS-Verschlüsselung')
+            ->assertSee('Änderungen dieser Datenschutzerklärung')
+            ->assertDontSee('Bunny Fonts')
+            ->assertDontSee('jsDelivr')
             ->assertSee('<meta name="robots" content="noindex,nofollow">', false);
+    }
+
+    public function test_public_pages_are_sessionless_and_admin_cookies_match_the_documented_configuration(): void
+    {
+        config([
+            'session.driver' => 'array',
+            'session.cookie' => 'pflegeindex-session',
+            'session.lifetime' => 120,
+            'session.encrypt' => true,
+            'session.secure' => true,
+            'session.http_only' => true,
+            'session.same_site' => 'lax',
+        ]);
+
+        $this->get('https://pflegeindex.com/datenschutz.html')
+            ->assertOk()
+            ->assertHeaderMissing('Set-Cookie');
+
+        $cookies = collect($this->get('https://pflegeindex.com/admin/login')->headers->getCookies());
+        $sessionCookie = $cookies->firstWhere(fn ($cookie): bool => $cookie->getName() === 'pflegeindex-session');
+        $csrfCookie = $cookies->firstWhere(fn ($cookie): bool => $cookie->getName() === 'XSRF-TOKEN');
+
+        $this->assertNotNull($sessionCookie);
+        $this->assertTrue($sessionCookie->isSecure());
+        $this->assertTrue($sessionCookie->isHttpOnly());
+        $this->assertSame('lax', $sessionCookie->getSameSite());
+        $this->assertNotNull($csrfCookie);
+        $this->assertTrue($csrfCookie->isSecure());
+        $this->assertFalse($csrfCookie->isHttpOnly());
+        $this->assertSame('lax', $csrfCookie->getSameSite());
     }
 
     public function test_project_page_describes_scope_and_limitations(): void
