@@ -367,6 +367,95 @@ class DirectoryPagesTest extends TestCase
             ->assertDontSee($otherFacility->name);
     }
 
+    public function test_facility_quality_panel_calculates_a_normalized_score(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'phone' => '+49 331 234567',
+            'website' => 'https://example.org/einrichtung',
+            'email' => 'kontakt@example.org',
+            'description' => 'Eine redaktionell geprüfte Beschreibung.',
+            'contact_status' => 'verified',
+            'contact_checked_at' => '2026-07-20 12:00:00',
+            'contact_source' => 'https://example.org/einrichtung',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('data-quality-score="91"', false)
+            ->assertSee('9 von 10 Qualitätsmerkmalen erfüllt')
+            ->assertSee('data-quality-badge="official"', false)
+            ->assertSee('data-quality-badge="contact"', false)
+            ->assertSee('data-quality-badge="description"', false)
+            ->assertSee('data-quality-badge="location"', false)
+            ->assertSee('data-quality-badge="website"', false)
+            ->assertDontSee('data-quality-criterion="coordinates"', false);
+    }
+
+    public function test_facility_quality_panel_hides_badges_for_missing_information(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('data-quality-score="32"', false)
+            ->assertSee('4 von 10 Qualitätsmerkmalen erfüllt')
+            ->assertSee('data-quality-badge="official"', false)
+            ->assertSee('data-quality-badge="location"', false)
+            ->assertDontSee('data-quality-badge="contact"', false)
+            ->assertDontSee('data-quality-badge="description"', false)
+            ->assertDontSee('data-quality-badge="website"', false);
+    }
+
+    public function test_facility_quality_panel_does_not_confirm_invalid_contact_data(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'phone' => '12',
+            'website' => 'not-a-url',
+            'email' => 'not-an-email',
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('data-quality-score="27"', false)
+            ->assertDontSee('data-quality-criterion="phone"', false)
+            ->assertDontSee('data-quality-criterion="website"', false)
+            ->assertDontSee('data-quality-criterion="email"', false)
+            ->assertDontSee('data-quality-criterion="errors"', false)
+            ->assertDontSee('data-quality-badge="contact"', false)
+            ->assertDontSee('data-quality-badge="website"', false);
+    }
+
+    public function test_facility_quality_panel_is_accessible_and_follows_mobile_actions(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update(['phone' => '+49 331 234567']);
+
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $content = $response->getContent();
+        $actionsPosition = strpos($content, '<nav class="mobile-contact-actions"');
+        $qualityPosition = strpos($content, '<section class="quality-panel"');
+        $addressPosition = strpos($content, '<p class="detail-address">');
+
+        $response
+            ->assertSee('role="progressbar"', false)
+            ->assertSee('aria-label="Erläuterung zur PflegeIndex Qualität"', false)
+            ->assertSee('Diese Bewertung beschreibt ausschließlich die Vollständigkeit und Qualität der vorliegenden Informationen. Sie ist keine Bewertung der Einrichtung.')
+            ->assertSee('Stand der Bewertung:');
+        $this->assertIsInt($actionsPosition);
+        $this->assertIsInt($qualityPosition);
+        $this->assertIsInt($addressPosition);
+        $this->assertLessThan($qualityPosition, $actionsPosition);
+        $this->assertLessThan($addressPosition, $qualityPosition);
+        $this->assertSame(1, substr_count($content, '<section class="quality-panel"'));
+
+        $stylesheet = file_get_contents(public_path('assets/styles.css'));
+        $this->assertIsString($stylesheet);
+        $this->assertStringContainsString('.mobile-contact-actions { display: none; }', $stylesheet);
+        $this->assertStringContainsString('@media (max-width: 760px)', $stylesheet);
+    }
+
     /** @return array{City, Facility} */
     private function createDirectoryEntry(): array
     {

@@ -25,6 +25,13 @@
     $googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query='.$mapQuery;
     $correctionMailto = 'mailto:info@pflegeindex.com?subject='.rawurlencode('Datenfehler PflegeIndex')
         .'&body='.rawurlencode("Einrichtung: {$facility->name}\nSeite: {$canonicalUrl}\n\nHinweis:\n");
+    $quality = \App\Projects\PflegeIndex\Trust\FacilityDataQuality::evaluate(
+        facility: $facility,
+        city: $city,
+        canonicalUrl: $canonicalUrl,
+        website: $displayWebsite,
+        hasDescription: $editorialView !== null || filled($facility->description),
+    );
 @endphp
 
 @push('head')
@@ -134,6 +141,7 @@
                         @if($facility->email)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
                     </nav>
                 @endif
+                @include('facilities._quality', ['quality' => $quality])
                 <p class="detail-address"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg> {{ $facility->address }}, {{ $facility->postal_code }} {{ $city->name }}</p>
                 <p class="source-explanation">Die amtlichen Grunddaten stammen vom LASV; Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.</p>
             </div>
