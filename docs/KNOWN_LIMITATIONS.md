@@ -1,6 +1,6 @@
 # PflegeIndex v1.0 — Known Limitations
 
-Status: **Release Candidate (`v1.0.0-rc.1`)**
+Status: **Release Candidate (`v1.0.0-rc.2`)**
 
 These are accepted architectural and data constraints of v1.0. They are not a
 list of defects and do not change the supported public behavior.
@@ -14,8 +14,12 @@ list of defects and do not change the supported public behavior.
 
 ## Legacy geographic data
 
-- Unmapped legacy city records use a guarded State-scope fallback so existing
-  Brandenburg listings remain complete.
+- 255 of 257 city records are mapped to GeoCore. The two unresolved cities are
+  Hennickendorf and Reichenberg, Märkische Heide; they account for five of
+  1,557 facilities. The guarded State-scope fallback keeps those records
+  discoverable outside district aggregation.
+- GeoCore currently covers 1,552 facilities and all 18 Brandenburg district
+  pages. No new public district URL is required for the two unresolved cities.
 - Region city and type aggregates still rely on the legacy `state_slug` field.
 - `LocationScope` identifiers are interpreted by project adapters and use the
   appropriate existing identifier for each scope type.
@@ -39,3 +43,6 @@ list of defects and do not change the supported public behavior.
 - Production deployment, database backup, rollback and post-deployment checks
   are separate operational steps and are not performed by this documentation
   baseline.
+- Hosting provider, mailbox, provider-log, backup and monitoring facts remain
+  operator confirmations and are tracked in
+  `LEGAL_HOSTING_FACTS_CHECKLIST.md`.

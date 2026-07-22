@@ -30,7 +30,10 @@ Manuell geprüfte Kontaktdaten aus einer vorhandenen Datenbank sollten vor einem
 3. Eine neue `APP_KEY` mit `php artisan key:generate` erzeugen.
 4. `storage` und `bootstrap/cache` für PHP beschreibbar machen.
 5. HTTPS aktivieren und anschließend `php artisan optimize` ausführen.
-6. Vor der Freischaltung die echten Betreiberangaben in Impressum und Datenschutz ergänzen.
+6. Vor der Freischaltung die vorhandenen Betreiberangaben prüfen und die noch
+   offenen Hosting- und Postfachangaben anhand von
+   `docs/LEGAL_HOSTING_FACTS_CHECKLIST.md` bestätigen. Unbestätigte Angaben
+   dürfen nicht in die Datenschutzerklärung übernommen werden.
 
 Die Admin-Sitzung ist für HTTPS vorbereitet. Der öffentliche Bereich bindet keine externen Skripte, Fonts oder Karten ein; OpenStreetMap wird erst nach einem bewussten Klick geöffnet.
 

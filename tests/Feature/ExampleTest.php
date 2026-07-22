@@ -61,6 +61,8 @@ class ExampleTest extends TestCase
 
     public function test_public_domain_variants_redirect_to_the_canonical_https_domain(): void
     {
+        // Exact Location assertions prove one-hop redirects, path/query
+        // preservation and the absence of an explicit default :443 port.
         $this->get('http://pflegeindex.com/pflegeheime.html?q=Potsdam')
             ->assertRedirect('https://pflegeindex.com/pflegeheime.html?q=Potsdam')
             ->assertStatus(301);

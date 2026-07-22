@@ -21,9 +21,13 @@ HTTP. Do not print `APP_KEY`, passwords or other environment secrets.
 - [ ] The release commit or tag is approved and recorded.
 - [ ] The working tree is clean: `git status --short` returns no output.
 - [ ] PHPUnit and Pint passed for the exact release commit.
+- [ ] The release artifact manifest names that exact commit and its checksums
+      have been verified after extraction.
 - [ ] `docs/RELEASE_VERIFICATION.md` is ready for post-deployment use.
 - [ ] Impressum contains the agreed operator details and Datenschutz accurately
       describes the configured hosting and processing behavior without placeholders.
+- [ ] Every item in `docs/LEGAL_HOSTING_FACTS_CHECKLIST.md` required for launch
+      is confirmed by the operator; unknown facts have not been guessed.
 - [ ] A verified production package was built from the approved release commit;
       its Composer status and checksums are complete.
 - [ ] SQLite Scenario A or B from the package manifest was selected explicitly.
@@ -33,6 +37,8 @@ HTTP. Do not print `APP_KEY`, passwords or other environment secrets.
 - [ ] Production logging uses `LOG_CHANNEL=stack`, `LOG_STACK=daily` and
       `LOG_DAILY_DAYS=30`; `storage/logs` is writable and outside the public
       web root. Keep the approved `LOG_LEVEL` unchanged.
+- [ ] The nginx/control-panel HTTP and `www` vhosts implement the one-hop rules
+      documented in `deployment/nginx-canonical-redirect.conf`.
 
 Record the currently deployed commit before changing anything:
 
@@ -152,6 +158,10 @@ Complete every item in `docs/RELEASE_VERIFICATION.md`. At minimum verify:
 - `/up` returns HTTP 200 with the exact plain-text body `OK` (liveness only; no database or external-service check);
 - home, Brandenburg, City and Facility pages render;
 - `/sitemap.xml` and `/robots.txt` use the production HTTPS host;
+- `http://pflegeindex.com/<path>`, `http://www.pflegeindex.com/<path>` and
+  `https://www.pflegeindex.com/<path>` each return one direct 301 to
+  `https://pflegeindex.com/<path>` with the query string preserved and no `:443`;
+- `/assets/og-image.png` returns HTTP 200 as `image/png` without a redirect;
 - admin login works and protected admin routes reject guests;
 - logs contain no new deployment errors.
 

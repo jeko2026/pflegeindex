@@ -106,9 +106,10 @@ can invalidate encrypted sessions and stored encrypted data. Replace
 `__ABSOLUTE_EXTERNAL_SQLITE_PATH__` with an absolute SQLite path outside both
 the release directory and public webroot.
 
-The template intentionally uses database-backed sessions and cache, a single
-Laravel log, synchronous queues and the `log` mail transport. Change these only
-when the corresponding production service has been explicitly configured.
+The template intentionally uses database-backed sessions and cache, the
+`stack` channel with daily Laravel logs retained for 30 days, synchronous
+queues and the `log` mail transport. Change these only when the corresponding
+production service has been explicitly configured.
 
 ## SQLite and GeoCore decision
 
@@ -147,6 +148,9 @@ an invalid upload layout.
 7. Confirm the external SQLite path and select database Scenario A or B.
 8. Inspect both ZIP contents before FileZilla upload.
 9. Follow the backup and maintenance procedure in the deployment checklist.
+10. Configure nginx/control-panel redirects from
+    `deployment/nginx-canonical-redirect.conf`; nginx does not process the
+    packaged Apache `.htaccess` file.
 
 ## Cleanup
 

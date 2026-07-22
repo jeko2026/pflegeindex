@@ -822,11 +822,8 @@ function Invoke-ProductionBuild {
         $manifestZip = Join-Path $archiveRoot "pflegeindex-manifest-$ShortCommit.zip"
         New-ZipFromDirectory -SourceDirectory (Join-Path $targetRoot 'private-core') -DestinationZip $privateZip
         New-ZipFromDirectory -SourceDirectory (Join-Path $targetRoot 'public-webroot') -DestinationZip $publicZip
-        New-ZipFromDirectory -SourceDirectory (Join-Path $targetRoot 'manifest') -DestinationZip $manifestZip
         Test-ZipArchive -ZipPath $privateZip -ExpectedRootEntry 'artisan'
         Test-ZipArchive -ZipPath $publicZip -ExpectedRootEntry '.htaccess'
-        Test-ZipArchive -ZipPath $manifestZip -ExpectedRootEntry 'RELEASE_MANIFEST.md'
-        $archives = @($privateZip, $publicZip, $manifestZip)
 
         $buildInfoPath = Join-Path $targetRoot 'manifest\build-info.json'
         $buildInfo = Get-Content -Raw -Encoding UTF8 $buildInfoPath | ConvertFrom-Json
@@ -834,6 +831,12 @@ function Invoke-ProductionBuild {
         Write-Utf8NoBom -Path $buildInfoPath -Content ($buildInfo | ConvertTo-Json -Depth 5)
         New-ChecksumManifest -PackageRoot $targetRoot
         Test-ChecksumManifest -PackageRoot $targetRoot
+
+        # Archive the manifest only after its final state and checksums have
+        # been written, so extracted release metadata matches the ZIP set.
+        New-ZipFromDirectory -SourceDirectory (Join-Path $targetRoot 'manifest') -DestinationZip $manifestZip
+        Test-ZipArchive -ZipPath $manifestZip -ExpectedRootEntry 'RELEASE_MANIFEST.md'
+        $archives = @($privateZip, $publicZip, $manifestZip)
     }
 
     Write-Host "Release commit: $Commit"

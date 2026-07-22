@@ -22,6 +22,11 @@ It does not replace hosting-provider monitoring or the deployment checklist.
 - Complete a short admin login and logout check.
 - Confirm `/sitemap.xml` is valid XML and `/robots.txt` points to its production
   HTTPS URL.
+- Confirm all HTTP/`www` variants still redirect in one hop to the exact
+  `https://pflegeindex.com` host without an explicit `:443` port. The approved
+  nginx reference is `deployment/nginx-canonical-redirect.conf`.
+- Confirm `/assets/og-image.png` returns HTTP 200 with `image/png` and `/up`
+  returns only the plain-text body `OK`.
 - Check a directory search, pagination link and facility contact link.
 - Review failed login patterns and unexpected admin requests in available
   hosting logs.
@@ -38,6 +43,10 @@ private application directory and Monolog automatically removes application
 logs older than 30 days. `storage/logs` must be writable by PHP and must never
 be exposed through the public web root. Hosting access/error logs have their
 own provider retention policy and are not managed by this Laravel setting.
+
+The provider's actual access/error-log fields and retention must be recorded in
+`LEGAL_HOSTING_FACTS_CHECKLIST.md`; Laravel's 30-day application-log policy does
+not establish the provider's policy.
 
 ## Backups
 

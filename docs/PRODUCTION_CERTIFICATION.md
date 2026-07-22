@@ -1,5 +1,11 @@
 # PflegeIndex Production Readiness Certification
 
+> **Certification snapshot.** This report records the pre-remediation decision
+> made on 2026-07-22. Sprint 3.5.1 subsequently resolved the repository,
+> formatting, packaging and documentation blockers. The current status and
+> remaining operator-controlled conditions are recorded in
+> `docs/PRODUCTION_BLOCKER_REMEDIATION.md`.
+
 **Audit date:** 2026-07-22
 
 **Audited branch:** `main`

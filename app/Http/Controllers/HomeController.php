@@ -29,8 +29,8 @@ class HomeController extends Controller
 
         return view('home', [
             'facilityCount' => Facility::count(),
-            'cityCount'     => City::count(),
-            'topCities'     => $topCities,
+            'cityCount' => City::count(),
+            'topCities' => $topCities,
             'popularSearches' => collect(self::POPULAR_SEARCHES),
         ]);
     }

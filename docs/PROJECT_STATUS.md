@@ -2,15 +2,15 @@
 
 ## Version
 
-`PflegeIndex v1.0 Release Candidate (v1.0.0-rc.1)`
+`PflegeIndex v1.0 Release Candidate (v1.0.0-rc.2)`
 
 ## Current phase
 
-Release Candidate — Production preparation
+Release Candidate — Final production verification preparation
 
 ## Current iteration
 
-Release baseline and documentation freeze
+Production blocker remediation
 
 ## Current project
 
@@ -61,7 +61,8 @@ operations and enum cases remain supported for compatibility.
 
 ## Tests
 
-97 passed, 2365 assertions.
+202 passed, 3070 assertions before Sprint 3.5.1. The final remediation result
+is recorded in `PRODUCTION_BLOCKER_REMEDIATION.md`.
 
 ## Known architecture debt
 
@@ -81,25 +82,26 @@ operations and enum cases remain supported for compatibility.
 | --- | --- | --- |
 | Architecture | Ready | Dependency direction is protected by allowlist architecture tests. |
 | Tests | Ready | Architecture and application coverage form the current release baseline. |
-| Documentation | Ready | Release notes, changelog, known limitations and version status form the RC baseline. |
+| Documentation | Conditional | Technical documents are current; hosting and mailbox facts still require operator confirmation. |
 | Platform API | Frozen for RC | The supported public surface, including the `LocationScope` constructor, is recorded. |
 | SEO Foundation | Ready | Existing public SEO behavior remains covered and unchanged. |
 | DirectoryCore | Ready | Framework-independent API is used by all public PflegeIndex listings. |
 | Multi-project support | Proven | A second adapter uses the unchanged Platform API; production project bootstrapping is intentionally out of scope. |
 
-Not yet ready for production release:
+Still required before final GO:
 
-- production-only Composer dependencies and PHP 8.2.27 platform verification;
-- explicit selection of SQLite deployment Scenario A or B;
-- production deployment, backup and rollback checklist verification.
+- operator confirmation of hosting, logging, mailbox and backup facts;
+- application of the one-hop canonical redirect in the hosting nginx/control panel;
+- explicit selection of SQLite deployment Scenario A or B and a verified backup;
+- deployment of the approved release artifact and complete post-deployment verification.
 
-The minimal Impressum, Datenschutz and project-information pages are prepared
-for release. A reproducible split-package builder is available, but it remains
-blocked from producing final ZIP archives until PHP CLI and Composer are
-available locally.
+Impressum and project-information pages are implemented. Datenschutz must be
+finalized only after the operator completes `LEGAL_HOSTING_FACTS_CHECKLIST.md`.
+PHP 8.2.27 and Composer are available locally, and the reproducible
+split-package builder can produce production-only dependency archives.
 
 ## Next goal
 
-Complete the production deployment, backup, rollback and post-deployment
-verification checklist without expanding DirectoryCore or changing public
-behavior.
+Complete the remaining human confirmations, production backup, nginx change,
+deployment and post-deployment verification without expanding DirectoryCore or
+changing public behavior.
