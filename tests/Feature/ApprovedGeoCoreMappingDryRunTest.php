@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\ApplyApprovedGeoCoreMapping;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -14,6 +15,8 @@ class ApprovedGeoCoreMappingDryRunTest extends TestCase
     private string $originalDatabase;
 
     private string $sourceDatabase;
+
+    private string $backupDirectory;
 
     protected function setUp(): void
     {
@@ -32,6 +35,13 @@ class ApprovedGeoCoreMappingDryRunTest extends TestCase
         }
 
         $this->sourceDatabase = $source;
+        $this->backupDirectory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR)
+            .DIRECTORY_SEPARATOR.'geocore-approved-backups-'.bin2hex(random_bytes(6));
+
+        if (! mkdir($this->backupDirectory, 0700)) {
+            throw new RuntimeException('Unable to create GeoCore backup test directory.');
+        }
+
         config(['database.connections.sqlite.database' => $this->sourceDatabase]);
         DB::purge('sqlite');
     }
@@ -46,6 +56,16 @@ class ApprovedGeoCoreMappingDryRunTest extends TestCase
             if (isset($this->sourceDatabase) && is_file($path)) {
                 unlink($path);
             }
+        }
+
+        foreach (glob($this->backupDirectory.DIRECTORY_SEPARATOR.'*') ?: [] as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+
+        if (is_dir($this->backupDirectory)) {
+            rmdir($this->backupDirectory);
         }
 
         parent::tearDown();
@@ -98,11 +118,19 @@ class ApprovedGeoCoreMappingDryRunTest extends TestCase
             ->expectsOutputToContain('Second pass already mapped: 75');
     }
 
-    public function test_command_requires_explicit_dry_run_option(): void
+    public function test_command_requires_one_explicit_mode_and_does_not_change_database(): void
     {
+        $beforeHash = hash_file('sha256', $this->sourceDatabase);
+
         $this->artisan('geocore:apply-approved-mapping')
             ->assertFailed()
-            ->expectsOutputToContain('This command is dry-run only');
+            ->expectsOutputToContain('Pass exactly one explicit mode');
+
+        $this->artisan('geocore:apply-approved-mapping', ['--dry-run' => true, '--apply' => true])
+            ->assertFailed()
+            ->expectsOutputToContain('Pass exactly one explicit mode');
+        $this->assertSame($beforeHash, hash_file('sha256', $this->sourceDatabase));
+        $this->assertSame([], $this->backupFiles());
     }
 
     public function test_production_environment_is_blocked(): void
@@ -282,6 +310,181 @@ class ApprovedGeoCoreMappingDryRunTest extends TestCase
         }
     }
 
+    public function test_apply_creates_verified_backup_and_applies_only_approved_rows(): void
+    {
+        $csvHash = hash_file('sha256', base_path('docs/GEOCORE_APPROVED_MAPPING.csv'));
+
+        $this->artisan('geocore:apply-approved-mapping', $this->applyArguments())
+            ->assertSuccessful()
+            ->expectsOutputToContain('Applied: 75')
+            ->expectsOutputToContain('Already mapped: 0')
+            ->expectsOutputToContain('Skipped REVIEW: 2')
+            ->expectsOutputToContain('Conflicts: 0')
+            ->expectsOutputToContain('Errors: 0')
+            ->expectsOutputToContain('Rollback: not required')
+            ->expectsOutputToContain('PASS: approved GeoCore mappings were applied');
+
+        $this->assertSame(255, DB::table('cities')->whereNotNull('geo_municipality_id')->count());
+        $this->assertSame(2, DB::table('cities')->whereNull('geo_municipality_id')->count());
+        $this->assertSame(1552, DB::table('facilities')
+            ->join('cities', 'cities.id', '=', 'facilities.city_id')
+            ->whereNotNull('cities.geo_municipality_id')
+            ->count());
+        $this->assertSame(0, DB::table('cities')->where('geo_match_status', 'unmatched')->count());
+        $this->assertNull(DB::table('cities')->where('id', 99)->value('geo_municipality_id'));
+        $this->assertNull(DB::table('cities')->where('id', 190)->value('geo_municipality_id'));
+        $this->assertSame($csvHash, hash_file('sha256', base_path('docs/GEOCORE_APPROVED_MAPPING.csv')));
+
+        $backups = $this->backupFiles();
+        $this->assertCount(1, $backups);
+        $this->assertStringNotContainsString(str_replace('\\', '/', public_path()), str_replace('\\', '/', $backups[0]));
+        $pdo = $this->readOnlyTestPdo($backups[0]);
+        $this->assertSame('ok', $pdo->query('PRAGMA integrity_check')->fetchColumn());
+        $this->assertSame(180, (int) $pdo->query('SELECT COUNT(*) FROM cities WHERE geo_municipality_id IS NOT NULL')->fetchColumn());
+        $this->assertSame(1557, (int) $pdo->query('SELECT COUNT(*) FROM facilities')->fetchColumn());
+    }
+
+    public function test_apply_is_idempotent_and_does_not_create_a_second_backup(): void
+    {
+        $this->artisan('geocore:apply-approved-mapping', $this->applyArguments())->assertSuccessful();
+        DB::disconnect('sqlite');
+        $afterFirstHash = hash_file('sha256', $this->sourceDatabase);
+        $backups = $this->backupFiles();
+
+        $this->artisan('geocore:apply-approved-mapping', $this->applyArguments())
+            ->assertSuccessful()
+            ->expectsOutputToContain('Applied: 0')
+            ->expectsOutputToContain('Already mapped: 75')
+            ->expectsOutputToContain('Skipped REVIEW: 2')
+            ->expectsOutputToContain('already applied');
+
+        DB::disconnect('sqlite');
+        $this->assertSame($afterFirstHash, hash_file('sha256', $this->sourceDatabase));
+        $this->assertSame($backups, $this->backupFiles());
+    }
+
+    public function test_unknown_initial_state_blocks_apply_before_backup(): void
+    {
+        DB::table('cities')->where('id', 1)->update(['geo_municipality_id' => null]);
+        DB::disconnect('sqlite');
+        $beforeHash = hash_file('sha256', $this->sourceDatabase);
+
+        $this->artisan('geocore:apply-approved-mapping', $this->applyArguments())
+            ->assertFailed()
+            ->expectsOutputToContain('Unknown or intermediate GeoCore mapping state');
+
+        DB::disconnect('sqlite');
+        $this->assertSame($beforeHash, hash_file('sha256', $this->sourceDatabase));
+        $this->assertSame([], $this->backupFiles());
+    }
+
+    public function test_outdated_migration_state_blocks_apply_before_backup(): void
+    {
+        DB::table('migrations')->orderByDesc('id')->limit(1)->delete();
+        DB::disconnect('sqlite');
+
+        $this->artisan('geocore:apply-approved-mapping', $this->applyArguments())
+            ->assertFailed()
+            ->expectsOutputToContain('migrations are not in the expected current state');
+
+        $this->assertSame([], $this->backupFiles());
+        $this->assertSame(180, DB::table('cities')->whereNotNull('geo_municipality_id')->count());
+    }
+
+    public function test_post_check_failure_automatically_restores_verified_backup(): void
+    {
+        $mapping = $this->temporaryMapping(function (array &$rows): void {
+            $approvedIndex = array_key_first(array_filter($rows, static fn (array $row): bool => $row['decision'] === 'APPROVED'));
+            $reviewIndex = array_key_first(array_filter($rows, static fn (array $row): bool => $row['decision'] === 'REVIEW'));
+            $rows[$approvedIndex]['decision'] = 'REVIEW';
+            $rows[$reviewIndex]['decision'] = 'APPROVED';
+        });
+
+        try {
+            $arguments = $this->applyArguments();
+            $arguments['--mapping'] = $mapping;
+            $this->artisan('geocore:apply-approved-mapping', $arguments)
+                ->assertFailed()
+                ->expectsOutputToContain('working SQLite was restored from the verified backup');
+
+            $backups = $this->backupFiles();
+            $this->assertCount(1, $backups);
+            DB::disconnect('sqlite');
+            $this->assertSame(hash_file('sha256', $backups[0]), hash_file('sha256', $this->sourceDatabase));
+            $this->assertSame(180, DB::table('cities')->whereNotNull('geo_municipality_id')->count());
+            $this->assertSame(77, DB::table('cities')->whereNull('geo_municipality_id')->count());
+            $this->assertSame('ok', DB::selectOne('PRAGMA integrity_check')->integrity_check);
+        } finally {
+            if (is_file($mapping)) {
+                unlink($mapping);
+            }
+        }
+    }
+
+    public function test_corrupted_or_mismatching_backup_is_rejected(): void
+    {
+        $corrupted = $this->backupDirectory.DIRECTORY_SEPARATOR.'corrupted.sqlite';
+        file_put_contents($corrupted, 'not a sqlite database');
+        $command = app(ApplyApprovedGeoCoreMapping::class);
+        $method = new \ReflectionMethod($command, 'verifyBackup');
+        $snapshot = [
+            'mapped_cities' => 180,
+            'facilities_total' => 1557,
+        ];
+
+        $this->expectException(\Throwable::class);
+        $method->invoke($command, $corrupted, $snapshot);
+    }
+
+    public function test_valid_sqlite_backup_with_wrong_counts_is_rejected(): void
+    {
+        $mismatch = $this->backupDirectory.DIRECTORY_SEPARATOR.'mismatch.sqlite';
+        $this->assertTrue(copy($this->sourceDatabase, $mismatch));
+        $pdo = new \PDO('sqlite:'.$mismatch);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('UPDATE cities SET geo_municipality_id = NULL WHERE geo_municipality_id IS NOT NULL AND id = (SELECT MIN(id) FROM cities WHERE geo_municipality_id IS NOT NULL)');
+        $pdo = null;
+        $command = app(ApplyApprovedGeoCoreMapping::class);
+        $method = new \ReflectionMethod($command, 'verifyBackup');
+        $snapshot = [
+            'mapped_cities' => 180,
+            'facilities_total' => 1557,
+        ];
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Backup key counts do not match');
+        $method->invoke($command, $mismatch, $snapshot);
+    }
+
+    public function test_applied_database_keeps_public_pages_and_sitemap_valid(): void
+    {
+        $this->artisan('geocore:apply-approved-mapping', $this->applyArguments())->assertSuccessful();
+        DB::disconnect('sqlite');
+        DB::purge('sqlite');
+        $cottbus = DB::table('cities')->where('id', 44)->first();
+        $district = DB::table('geo_districts')->where('ags', '12052')->first();
+        $facility = DB::table('facilities')->where('city_id', 44)->first();
+        $cityUrl = route('cities.show', $cottbus->slug);
+        $districtUrl = route('districts.show', $district->slug);
+
+        $this->get(route('region.show'))->assertOk();
+        $this->get($cityUrl)->assertOk()->assertSee($districtUrl, false)->assertSee('BreadcrumbList');
+        $this->get($districtUrl)
+            ->assertOk()
+            ->assertSee('72 Pflegeeinrichtungen')
+            ->assertSee($cityUrl, false)
+            ->assertSee('"identifier":"12052"', false);
+        $this->get(route('facilities.show', [$cottbus->slug, $facility->slug]))
+            ->assertOk()
+            ->assertSee($facility->name)
+            ->assertSee($cityUrl, false);
+        $this->assertSame(257, DB::table('cities')->where('state_slug', 'brandenburg')->whereExists(function ($query): void {
+            $query->selectRaw('1')->from('facilities')->whereColumn('facilities.city_id', 'cities.id');
+        })->count());
+        $this->assertSame(1557, DB::table('facilities')->count());
+        $this->assertSame(18, DB::table('geo_districts')->count());
+    }
+
     private function createFixtureDatabase(): string
     {
         $path = tempnam(sys_get_temp_dir(), 'geocore-approved-fixture-');
@@ -415,6 +618,33 @@ class ApprovedGeoCoreMappingDryRunTest extends TestCase
         if (is_dir($directory)) {
             rmdir($directory);
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function applyArguments(): array
+    {
+        return [
+            '--apply' => true,
+            '--backup-dir' => $this->backupDirectory,
+        ];
+    }
+
+    /** @return list<string> */
+    private function backupFiles(): array
+    {
+        $files = glob($this->backupDirectory.DIRECTORY_SEPARATOR.'*.sqlite') ?: [];
+        sort($files);
+
+        return array_values($files);
+    }
+
+    private function readOnlyTestPdo(string $path): \PDO
+    {
+        $pdo = new \PDO('sqlite:file:'.str_replace('\\', '/', $path).'?mode=ro');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('PRAGMA query_only=ON');
+
+        return $pdo;
     }
 
     /** @return list<array<string, string>> */

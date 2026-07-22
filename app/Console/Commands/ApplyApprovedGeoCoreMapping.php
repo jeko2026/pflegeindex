@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use PDO;
 use RuntimeException;
 use Throwable;
 
@@ -51,21 +52,26 @@ class ApplyApprovedGeoCoreMapping extends Command
 
     protected $signature = 'geocore:apply-approved-mapping
         {--dry-run : Apply and validate the approved mapping only on an isolated SQLite copy}
+        {--apply : Create a verified backup and apply approved mappings to the local SQLite database}
         {--mapping= : Override the approved mapping CSV path}
+        {--backup-dir= : Existing protected directory for application backups}
         {--keep-copy : Keep the isolated SQLite copy for local diagnostics}';
 
-    protected $description = 'Validate approved GeoCore mappings and simulate them on an isolated SQLite copy';
+    protected $description = 'Dry-run or safely apply approved GeoCore city mappings';
 
     public function handle(): int
     {
-        if (! $this->option('dry-run')) {
-            $this->components->error('This command is dry-run only. Pass --dry-run.');
+        $dryRun = (bool) $this->option('dry-run');
+        $apply = (bool) $this->option('apply');
+
+        if ($dryRun === $apply) {
+            $this->components->error('Pass exactly one explicit mode: --dry-run or --apply.');
 
             return self::FAILURE;
         }
 
         if (app()->environment('production')) {
-            $this->components->error('Approved mapping dry-run is blocked in production.');
+            $this->components->error('Approved mapping command is blocked in production.');
 
             return self::FAILURE;
         }
@@ -74,7 +80,9 @@ class ApplyApprovedGeoCoreMapping extends Command
             $mappingPath = $this->resolveMappingPath();
             $rows = $this->readAndValidateCsv($mappingPath);
 
-            return $this->runIsolatedDryRun($rows);
+            return $dryRun
+                ? $this->runIsolatedDryRun($rows)
+                : $this->runControlledApply($rows);
         } catch (Throwable $exception) {
             $this->components->error($exception->getMessage());
 
@@ -302,6 +310,372 @@ class ApplyApprovedGeoCoreMapping extends Command
         return self::SUCCESS;
     }
 
+    /** @param list<array<string, string>> $rows */
+    private function runControlledApply(array $rows): int
+    {
+        $connection = DB::getDefaultConnection();
+        $driver = (string) config("database.connections.{$connection}.driver");
+        $configuredDatabase = (string) config("database.connections.{$connection}.database");
+
+        if ($driver !== 'sqlite' || $configuredDatabase === '' || $configuredDatabase === ':memory:') {
+            throw new RuntimeException('Apply requires a file-backed SQLite default connection.');
+        }
+
+        $sourcePath = realpath($configuredDatabase);
+
+        if ($sourcePath === false || ! is_file($sourcePath) || ! is_readable($sourcePath) || ! is_writable($sourcePath)) {
+            throw new RuntimeException('The configured SQLite database must exist and be readable and writable.');
+        }
+
+        $this->assertNoActiveSidecars($sourcePath);
+        $this->assertIntegrity($sourcePath);
+        $this->assertMigrationsCurrent();
+
+        $validated = $this->validateDatabaseRows($rows);
+        $before = $this->snapshot();
+        $urlsBefore = $this->urlInventory();
+        $state = $this->mappingState($validated, $before);
+
+        if ($state === 'applied') {
+            $this->assertAppliedAssignments($validated);
+            $this->renderApplicationSummary(0, self::EXPECTED_APPROVED, self::EXPECTED_REVIEW, null, null, $before);
+            $this->components->info('PASS: approved GeoCore mapping is already applied; no database or backup changes were made.');
+
+            return self::SUCCESS;
+        }
+
+        if ($state !== 'initial') {
+            throw new RuntimeException('Unknown or intermediate GeoCore mapping state; apply refused without override.');
+        }
+
+        $sourceHashBefore = $this->fileHash($sourcePath);
+        $backup = $this->createVerifiedBackup($sourcePath, $before);
+        $mutationStarted = false;
+
+        try {
+            $mutationStarted = true;
+            [$firstPass, $after] = DB::transaction(function () use ($validated, $before, $urlsBefore): array {
+                $firstPass = $this->applyApprovedRows($validated['approved'], false);
+                $after = $this->snapshot();
+                $urlsAfter = $this->urlInventory();
+                $secondPass = $this->applyApprovedRows($validated['approved'], false);
+
+                $this->validateResult(
+                    $validated,
+                    $before,
+                    $after,
+                    $urlsBefore,
+                    $urlsAfter,
+                    $firstPass,
+                    $secondPass,
+                );
+
+                return [$firstPass, $after];
+            });
+
+            $this->assertIntegrity($sourcePath);
+            $this->assertAppliedAssignments($validated);
+            $final = $this->snapshot();
+
+            if ($final !== $after) {
+                throw new RuntimeException('Post-commit database snapshot differs from the validated transaction result.');
+            }
+        } catch (Throwable $exception) {
+            if ($mutationStarted) {
+                $this->restoreVerifiedBackup($backup['path'], $sourcePath, $backup['hash'], $before);
+
+                throw new RuntimeException(
+                    'Apply failed; working SQLite was restored from the verified backup. Cause: '.$exception->getMessage(),
+                    previous: $exception,
+                );
+            }
+
+            throw $exception;
+        }
+
+        $sourceHashAfter = $this->fileHash($sourcePath);
+        $this->renderApplicationSummary(
+            $firstPass['updated'],
+            $firstPass['already_mapped'],
+            count($validated['review']),
+            $sourceHashBefore,
+            $sourceHashAfter,
+            $after,
+            $backup,
+        );
+        $this->components->info('PASS: approved GeoCore mappings were applied to the local SQLite database.');
+
+        return self::SUCCESS;
+    }
+
+    private function assertNoActiveSidecars(string $sourcePath): void
+    {
+        foreach (['-wal', '-journal'] as $suffix) {
+            if (is_file($sourcePath.$suffix) && filesize($sourcePath.$suffix) > 0) {
+                throw new RuntimeException("SQLite {$suffix} file is active; apply refused.");
+            }
+        }
+    }
+
+    private function assertIntegrity(string $databasePath): void
+    {
+        $pdo = $this->readOnlyPdo($databasePath);
+        $result = $pdo->query('PRAGMA integrity_check')?->fetchColumn();
+
+        if ($result !== 'ok') {
+            throw new RuntimeException('SQLite integrity check failed.');
+        }
+    }
+
+    private function assertMigrationsCurrent(): void
+    {
+        if (! DB::getSchemaBuilder()->hasTable('migrations')) {
+            throw new RuntimeException('Migrations table is missing.');
+        }
+
+        $files = collect(glob(database_path('migrations/*.php')) ?: [])
+            ->map(static fn (string $path): string => pathinfo($path, PATHINFO_FILENAME))
+            ->sort()
+            ->values()
+            ->all();
+        $applied = DB::table('migrations')->orderBy('migration')->pluck('migration')->all();
+
+        if ($files !== $applied) {
+            throw new RuntimeException('Database migrations are not in the expected current state.');
+        }
+    }
+
+    /**
+     * @param  array{approved: list<array<string, mixed>>, review: list<array<string, mixed>>}  $validated
+     * @param  array<string, mixed>  $snapshot
+     */
+    private function mappingState(array $validated, array $snapshot): string
+    {
+        $approvedLinked = collect($validated['approved'])->filter(function (array $row): bool {
+            return (int) DB::table('cities')->where('id', (int) $row['city_id'])->value('geo_municipality_id')
+                === (int) $row['_municipality_id'];
+        })->count();
+        $reviewUnresolved = collect($validated['review'])->every(function (array $row): bool {
+            return DB::table('cities')->where('id', (int) $row['city_id'])->value('geo_municipality_id') === null;
+        });
+
+        if ($snapshot['mapped_cities'] === self::EXPECTED_CITIES_BEFORE
+            && $snapshot['unresolved_cities'] === self::EXPECTED_ROWS
+            && $snapshot['facilities_total'] === self::EXPECTED_FACILITIES
+            && $snapshot['facilities_assigned'] === self::EXPECTED_FACILITIES_ASSIGNED_BEFORE
+            && $approvedLinked === 0
+            && $reviewUnresolved) {
+            return 'initial';
+        }
+
+        if ($snapshot['mapped_cities'] === self::EXPECTED_CITIES_AFTER
+            && $snapshot['unresolved_cities'] === self::EXPECTED_REVIEW
+            && $snapshot['facilities_total'] === self::EXPECTED_FACILITIES
+            && $snapshot['facilities_assigned'] === self::EXPECTED_FACILITIES_ASSIGNED_AFTER
+            && $snapshot['facilities_unassigned'] === self::EXPECTED_FACILITIES_UNASSIGNED_AFTER
+            && $approvedLinked === self::EXPECTED_APPROVED
+            && $reviewUnresolved) {
+            return 'applied';
+        }
+
+        return 'unknown';
+    }
+
+    /** @param array{approved: list<array<string, mixed>>, review: list<array<string, mixed>>} $validated */
+    private function assertAppliedAssignments(array $validated): void
+    {
+        foreach ($validated['approved'] as $row) {
+            $municipalityId = DB::table('cities')->where('id', (int) $row['city_id'])->value('geo_municipality_id');
+
+            if ((int) $municipalityId !== (int) $row['_municipality_id']) {
+                throw new RuntimeException("Approved assignment mismatch for city_id {$row['city_id']}.");
+            }
+        }
+
+        foreach ($validated['review'] as $row) {
+            if (DB::table('cities')->where('id', (int) $row['city_id'])->value('geo_municipality_id') !== null) {
+                throw new RuntimeException("REVIEW city was unexpectedly mapped: {$row['city_id']}.");
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceSnapshot
+     * @return array{path: string, name: string, hash: string}
+     */
+    private function createVerifiedBackup(string $sourcePath, array $sourceSnapshot): array
+    {
+        $requestedDirectory = (string) ($this->option('backup-dir') ?: dirname(base_path()).DIRECTORY_SEPARATOR.'database-backups');
+        $backupDirectory = realpath($requestedDirectory);
+
+        if ($backupDirectory === false || ! is_dir($backupDirectory) || ! is_writable($backupDirectory)) {
+            throw new RuntimeException('Backup directory must already exist and be writable.');
+        }
+
+        $publicPath = realpath(public_path());
+
+        if ($publicPath !== false && $this->pathIsWithin($backupDirectory, $publicPath)) {
+            throw new RuntimeException('Backup directory must be outside the public webroot.');
+        }
+
+        $name = 'pflegeindex-before-geocore-approved-'.now()->format('Ymd-His').'-'.bin2hex(random_bytes(4)).'.sqlite';
+        $backupPath = $backupDirectory.DIRECTORY_SEPARATOR.$name;
+
+        if (file_exists($backupPath)) {
+            throw new RuntimeException('Refusing to overwrite an existing backup.');
+        }
+
+        $pdo = DB::connection()->getPdo();
+        DB::statement('VACUUM INTO '.$pdo->quote($backupPath));
+
+        if (! is_file($backupPath) || filesize($backupPath) === 0) {
+            throw new RuntimeException('SQLite backup was not created correctly.');
+        }
+
+        $mode = fileperms($sourcePath);
+
+        if ($mode !== false) {
+            @chmod($backupPath, $mode & 0777);
+        }
+
+        $this->verifyBackup($backupPath, $sourceSnapshot);
+
+        return ['path' => $backupPath, 'name' => $name, 'hash' => $this->fileHash($backupPath)];
+    }
+
+    /** @param array<string, mixed> $sourceSnapshot */
+    private function verifyBackup(string $backupPath, array $sourceSnapshot): void
+    {
+        $pdo = $this->readOnlyPdo($backupPath);
+
+        if ($pdo->query('PRAGMA integrity_check')?->fetchColumn() !== 'ok') {
+            throw new RuntimeException('Backup SQLite integrity check failed.');
+        }
+
+        $counts = [
+            'cities' => (int) $pdo->query('SELECT COUNT(*) FROM cities')->fetchColumn(),
+            'mapped_cities' => (int) $pdo->query('SELECT COUNT(*) FROM cities WHERE geo_municipality_id IS NOT NULL')->fetchColumn(),
+            'facilities_total' => (int) $pdo->query('SELECT COUNT(*) FROM facilities')->fetchColumn(),
+            'districts' => (int) $pdo->query('SELECT COUNT(*) FROM geo_districts')->fetchColumn(),
+            'municipalities' => (int) $pdo->query('SELECT COUNT(*) FROM geo_municipalities')->fetchColumn(),
+        ];
+        $expected = [
+            'cities' => self::EXPECTED_CITIES,
+            'mapped_cities' => $sourceSnapshot['mapped_cities'],
+            'facilities_total' => $sourceSnapshot['facilities_total'],
+            'districts' => self::EXPECTED_DISTRICTS,
+            'municipalities' => 413,
+        ];
+
+        if ($counts !== $expected) {
+            throw new RuntimeException('Backup key counts do not match the source database.');
+        }
+    }
+
+    /** @param array<string, mixed> $expectedSnapshot */
+    private function restoreVerifiedBackup(
+        string $backupPath,
+        string $sourcePath,
+        string $backupHash,
+        array $expectedSnapshot,
+    ): void {
+        DB::disconnect();
+
+        foreach ([$sourcePath.'-wal', $sourcePath.'-shm', $sourcePath.'-journal'] as $sidecar) {
+            if (is_file($sidecar) && ! unlink($sidecar)) {
+                throw new RuntimeException('Unable to remove SQLite sidecar before rollback.');
+            }
+        }
+
+        $restorePath = $sourcePath.'.restore-'.bin2hex(random_bytes(4));
+
+        if (! copy($backupPath, $restorePath) || $this->fileHash($restorePath) !== $backupHash) {
+            @unlink($restorePath);
+
+            throw new RuntimeException('Unable to prepare verified rollback copy.');
+        }
+
+        if (! unlink($sourcePath)) {
+            @unlink($restorePath);
+
+            throw new RuntimeException('Unable to replace working SQLite during rollback.');
+        }
+
+        if (! rename($restorePath, $sourcePath)) {
+            if (! copy($backupPath, $sourcePath)) {
+                throw new RuntimeException('Critical rollback failure while restoring working SQLite.');
+            }
+
+            @unlink($restorePath);
+        }
+
+        DB::purge();
+
+        if ($this->fileHash($sourcePath) !== $backupHash) {
+            throw new RuntimeException('Restored SQLite hash does not match the verified backup.');
+        }
+
+        $this->assertIntegrity($sourcePath);
+        $restored = $this->snapshot();
+
+        foreach (['mapped_cities', 'unresolved_cities', 'facilities_total', 'facilities_assigned', 'facilities_unassigned'] as $key) {
+            if ($restored[$key] !== $expectedSnapshot[$key]) {
+                throw new RuntimeException("Restored SQLite count mismatch: {$key}.");
+            }
+        }
+    }
+
+    private function readOnlyPdo(string $databasePath): PDO
+    {
+        $pdo = new PDO('sqlite:file:'.str_replace('\\', '/', $databasePath).'?mode=ro', null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
+        $pdo->exec('PRAGMA query_only=ON');
+
+        return $pdo;
+    }
+
+    private function pathIsWithin(string $candidate, string $parent): bool
+    {
+        $candidate = rtrim(str_replace('\\', '/', $candidate), '/').'/';
+        $parent = rtrim(str_replace('\\', '/', $parent), '/').'/';
+
+        return str_starts_with(strtolower($candidate), strtolower($parent));
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array{path: string, name: string, hash: string}|null  $backup
+     */
+    private function renderApplicationSummary(
+        int $applied,
+        int $alreadyMapped,
+        int $review,
+        ?string $sourceHashBefore,
+        ?string $sourceHashAfter,
+        array $snapshot,
+        ?array $backup = null,
+    ): void {
+        $this->line('Applied: '.$applied);
+        $this->line('Already mapped: '.$alreadyMapped);
+        $this->line('Skipped REVIEW: '.$review);
+        $this->line('Conflicts: 0');
+        $this->line('Errors: 0');
+        $this->line('Mapped cities: '.$snapshot['mapped_cities']);
+        $this->line('Unresolved cities: '.$snapshot['unresolved_cities']);
+        $this->line('Facilities on district pages: '.$snapshot['facilities_assigned']);
+        $this->line('Facilities without district: '.$snapshot['facilities_unassigned']);
+        $this->line('Empty district pages: '.$snapshot['empty_districts']);
+
+        if ($backup !== null) {
+            $this->line('Backup: '.$backup['name']);
+            $this->line('Source SHA-256 before: '.$sourceHashBefore);
+            $this->line('Backup SHA-256: '.$backup['hash']);
+            $this->line('Source SHA-256 after: '.$sourceHashAfter);
+            $this->line('Rollback: not required');
+        }
+    }
+
     /**
      * @param  list<array<string, string>>  $rows
      * @return array{approved: list<array<string, mixed>>, review: list<array<string, mixed>>}
@@ -373,9 +747,9 @@ class ApplyApprovedGeoCoreMapping extends Command
      * @param  list<array<string, mixed>>  $approved
      * @return array{updated: int, already_mapped: int}
      */
-    private function applyApprovedRows(array $approved): array
+    private function applyApprovedRows(array $approved, bool $transactional = true): array
     {
-        return DB::transaction(function () use ($approved): array {
+        $apply = function () use ($approved): array {
             $updated = 0;
             $alreadyMapped = 0;
 
@@ -408,7 +782,9 @@ class ApplyApprovedGeoCoreMapping extends Command
             }
 
             return ['updated' => $updated, 'already_mapped' => $alreadyMapped];
-        });
+        };
+
+        return $transactional ? DB::transaction($apply) : $apply();
     }
 
     /** @return array<string, mixed> */
