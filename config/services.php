@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'analytics' => [
+        'ga4_measurement_id' => env('GA4_MEASUREMENT_ID'),
+        'clarity_project_id' => env('CLARITY_PROJECT_ID'),
+    ],
+
 ];

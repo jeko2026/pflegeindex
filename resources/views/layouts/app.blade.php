@@ -14,6 +14,24 @@
     <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260722-1">
     @stack('head')
     <script defer src="{{ asset('assets/app.js') }}?v=20260722-1"></script>
+    @if (config('services.analytics.ga4_measurement_id'))
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ rawurlencode(config('services.analytics.ga4_measurement_id')) }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', @json(config('services.analytics.ga4_measurement_id')));
+        </script>
+    @endif
+    @if (config('services.analytics.clarity_project_id'))
+        <script>
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", @json(config('services.analytics.clarity_project_id')));
+        </script>
+    @endif
 </head>
 <body class="@yield('bodyClass')">
     <div class="demo-strip">Offizielle Basisdaten des LASV Brandenburg · Datenstand 31.12.2025 · Kontaktangaben werden ergänzt.</div>
