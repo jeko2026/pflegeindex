@@ -226,6 +226,23 @@ img, svg { display: block; }
 .detail-section { margin-top: 17px; padding: 30px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
 .detail-section h2 { margin: 0 0 14px; color: var(--navy-dark); font-family: "Manrope",sans-serif; font-size: 21px; }
 .detail-section > p { margin: 0; color: var(--muted); line-height: 1.7; }
+.content-guidance { border-left: 5px solid #73917c; background: #f7faf8; }
+.content-guidance ul { margin: 0; padding-left: 21px; color: #435448; line-height: 1.65; }
+.content-guidance li + li { margin-top: 7px; }
+.content-faq dl { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+.content-faq dl > div { padding-top: 15px; border-top: 1px solid var(--line); }
+.content-faq dt { color: var(--navy-dark); font-weight: 800; line-height: 1.45; }
+.content-faq dd { margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.content-links > div { display: flex; flex-wrap: wrap; gap: 9px; }
+.content-links a { min-height: 42px; padding: 9px 12px; display: inline-flex; align-items: center; color: var(--navy); border: 1px solid #b9c8d3; border-radius: 9px; background: #f8fafb; font-size: 14px; font-weight: 750; text-decoration: none; }
+.content-links a:hover { color: #fff; border-color: var(--navy); background: var(--navy); }
+.content-links a:focus-visible, .content-cta__actions a:focus-visible { outline: 3px solid rgba(22,58,99,.28); outline-offset: 2px; }
+.content-cta { display: flex; align-items: center; justify-content: space-between; gap: 22px; border-color: #d2dde5; background: #f6f9fb; }
+.content-cta h2 { margin-bottom: 7px; }
+.content-cta p { margin: 0; color: var(--muted); line-height: 1.55; }
+.content-cta__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.content-cta__actions a { min-height: 42px; padding: 9px 13px; display: inline-flex; align-items: center; color: #fff; border-radius: 9px; background: var(--navy); font-size: 14px; font-weight: 750; text-decoration: none; }
+.content-cta__actions a:hover { background: var(--green-dark); }
 .facility-editorial { color: var(--muted); line-height: 1.72; }
 .facility-editorial p { margin: 0; }
 .facility-editorial p + p { margin-top: 13px; }
@@ -365,6 +382,9 @@ img, svg { display: block; }
   .mobile-contact-actions a:focus-visible { outline: 3px solid rgba(22,58,99,.28); outline-offset: 2px; }
   .quality-panel { padding: 16px; }
   .quality-checklist { grid-template-columns: 1fr; }
+  .content-faq dl { grid-template-columns: 1fr; }
+  .content-cta { align-items: flex-start; flex-direction: column; }
+  .content-cta__actions { width: 100%; justify-content: flex-start; }
   .lexicon-intro-note { grid-template-columns: 1fr; gap: 7px; }
   .lexicon-detail-layout { grid-template-columns: 1fr; }
   .lexicon-sidebar { position: static; }

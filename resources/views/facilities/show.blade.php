@@ -168,6 +168,7 @@
             </section>
             <section class="detail-section"><h2>Adresse</h2><p><strong>{{ $facility->name }}</strong><br>{{ $facility->address }}<br>{{ $facility->postal_code }} {{ $city->name }}</p></section>
             <section class="detail-section"><h2>Einrichtungsart</h2><div class="check-grid">@foreach($facility->care_types ?? [$facility->type] as $careType)<span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>{{ $careType }}</span>@endforeach</div></section>
+            @include('facilities._content')
         </div>
         <aside class="contact-card">
             <span class="contact-card__label">Kontakt</span>

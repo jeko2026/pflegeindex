@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\City;
 use App\Models\Facility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -215,6 +216,95 @@ class DirectoryPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Datenfehler melden')
             ->assertSee(e($mailto), false);
+    }
+
+    public function test_facility_page_displays_the_content_guidance_faq_and_contact_prompt(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update(['phone' => '+49 331 234567']);
+        $relatedFacility = $this->createFacility(
+            $city,
+            'content-related-14467-test',
+            'Pflegehaus am See',
+            'pflegehaus-am-see-14467',
+            'Seestraße 4',
+        );
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('Was Sie wissen sollten')
+            ->assertSee('Vor einem Vertragsabschluss sollte möglichst eine Besichtigung erfolgen.')
+            ->assertSee('Häufige Fragen')
+            ->assertSee('Welche Unterlagen werden benötigt?')
+            ->assertSee('Kann ich einen Besichtigungstermin vereinbaren?')
+            ->assertSee('Übernimmt die Pflegeversicherung Kosten?')
+            ->assertSee('Wie finde ich einen Pflegeplatz?')
+            ->assertSee('Weitere Informationen')
+            ->assertSee('Fragen?')
+            ->assertSee('href="tel:+49 331 234567"', false)
+            ->assertSee("Weitere Pflegeeinrichtungen in {$city->name}")
+            ->assertSee($relatedFacility->name);
+    }
+
+    public function test_facility_content_links_only_target_existing_lexicon_pages(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $desiredTerms = [
+            'pflegegrad',
+            'kurzzeitpflege',
+            'pflegeversicherung',
+            'ambulante-pflege',
+            'stationaere-pflege',
+        ];
+        $availableTerms = config('lexicon.terms', []);
+
+        foreach ($desiredTerms as $slug) {
+            $url = route('lexicon.show', $slug);
+
+            if (isset($availableTerms[$slug])) {
+                $response->assertSee('href="'.$url.'"', false);
+                $this->get($url)->assertOk();
+            } else {
+                $response->assertDontSee('href="'.$url.'"', false);
+            }
+        }
+    }
+
+    public function test_facility_content_layer_does_not_increase_queries_with_related_entries(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $this->createFacility(
+            $city,
+            'query-related-1-14467-test',
+            'Pflegeeinrichtung 1',
+            'pflegeeinrichtung-1-14467',
+            'Testweg 1',
+        );
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $queriesWithOneRelatedEntry = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        foreach (range(2, 5) as $index) {
+            $this->createFacility(
+                $city,
+                "query-related-{$index}-14467-test",
+                "Pflegeeinrichtung {$index}",
+                "pflegeeinrichtung-{$index}-14467",
+                "Testweg {$index}",
+            );
+        }
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $queriesWithRelatedEntries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame($queriesWithOneRelatedEntry, $queriesWithRelatedEntries);
     }
 
     public function test_facility_pages_distinguish_official_base_data_from_editorial_additions(): void
