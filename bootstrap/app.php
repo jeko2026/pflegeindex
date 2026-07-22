@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\ApplyApprovedGeoCoreMapping;
 use App\Console\Commands\CreateAdmin;
 use App\Console\Commands\ImportBrandenburgGeoCore;
 use App\Console\Commands\ImportContactSuggestions;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withCommands([
+        ApplyApprovedGeoCoreMapping::class,
         CreateAdmin::class,
         ImportContactSuggestions::class,
         ImportBrandenburgGeoCore::class,
