@@ -19,6 +19,7 @@ body { margin: 0; color: var(--ink); background: var(--bg); font-family: system-
 button, input, select { font: inherit; }
 a { color: inherit; }
 img, svg { display: block; }
+:where(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 6px var(--navy); }
 .container { width: min(1180px, calc(100% - 48px)); margin: 0 auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
@@ -138,7 +139,7 @@ img, svg { display: block; }
 .result-card:hover { border-color: rgba(76,175,80,.45); box-shadow: var(--shadow); }
 .result-card__top { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .type-badge, .demo-badge, .source-badge { display: inline-flex; padding: 6px 9px; border-radius: 7px; font-size: 13px; font-weight: 700; }
-.type-badge { color: var(--green-dark); background: var(--soft-green); }
+.type-badge { color: #276f2e; background: var(--soft-green); }
 .demo-badge { color: #82651f; background: #fff6d9; }
 .source-badge { color: var(--navy); background: #edf3f7; }
 .description-sources { margin: 18px 0; padding: 14px 16px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; background: #f8fafb; font-size: 14px; }

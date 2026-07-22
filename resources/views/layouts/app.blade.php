@@ -11,9 +11,9 @@
     <meta name="twitter:image" content="https://pflegeindex.com/assets/og-image.png">
     <title>@yield('title', 'PflegeIndex – Pflege einfach finden')</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
-    <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260721-2">
+    <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260722-1">
     @stack('head')
-    <script defer src="{{ asset('assets/app.js') }}"></script>
+    <script defer src="{{ asset('assets/app.js') }}?v=20260722-1"></script>
 </head>
 <body class="@yield('bodyClass')">
     <div class="demo-strip">Offizielle Basisdaten des LASV Brandenburg · Datenstand 31.12.2025 · Kontaktangaben werden ergänzt.</div>
@@ -37,7 +37,7 @@
 
     <footer class="site-footer">
         <div class="container footer-main">
-            <div><img src="{{ asset('logo-light.svg') }}" alt="PflegeIndex"><p>Das unabhängige Verzeichnis für Pflegeangebote – aktuell mit Daten aus Brandenburg.</p></div>
+            <div><img src="{{ asset('logo-light.svg') }}" alt="PflegeIndex" width="476" height="104"><p>Das unabhängige Verzeichnis für Pflegeangebote – aktuell mit Daten aus Brandenburg.</p></div>
             <div class="footer-column">
                 <strong>Pflege finden</strong>
                 <a href="{{ route('directory.index', ['type' => 'Stationäre/teilstationäre Pflege']) }}">Stationäre Pflege</a>
