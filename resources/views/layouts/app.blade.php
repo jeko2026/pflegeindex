@@ -11,7 +11,7 @@
     <meta name="twitter:image" content="https://pflegeindex.com/assets/og-image.png">
     <title>@yield('title', 'PflegeIndex – Pflege einfach finden')</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
-    <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260722-1">
+    <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260723-1">
     @stack('head')
     <script defer src="{{ asset('assets/app.js') }}?v=20260722-1"></script>
     @if (config('services.analytics.ga4_measurement_id'))

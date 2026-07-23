@@ -21,24 +21,32 @@
 
 <section class="detail-section content-faq" aria-labelledby="facility-faq-title">
     <h2 id="facility-faq-title">Häufige Fragen</h2>
-    <dl>
-        <div>
-            <dt>Welche Unterlagen werden benötigt?</dt>
-            <dd>Die benötigten Unterlagen hängen von der Einrichtungsart und dem vereinbarten Angebot ab. Fragen Sie die Einrichtung nach einer aktuellen Liste und halten Sie vorhandene Unterlagen der Pflegekasse bereit.</dd>
-        </div>
-        <div>
-            <dt>Kann ich einen Besichtigungstermin vereinbaren?</dt>
-            <dd>Ob und wann eine Besichtigung möglich ist, erfahren Sie direkt bei der Einrichtung. Vereinbaren Sie den Termin möglichst vor einer Entscheidung.</dd>
-        </div>
-        <div>
-            <dt>Übernimmt die Pflegeversicherung Kosten?</dt>
-            <dd>Die Pflegeversicherung kann sich abhängig von Pflegegrad, Versorgungsform und persönlichen Voraussetzungen an bestimmten Kosten beteiligen. Lassen Sie sich von Einrichtung und Pflegekasse einen individuellen Kostenüberblick geben.</dd>
-        </div>
-        <div>
-            <dt>Wie finde ich einen Pflegeplatz?</dt>
-            <dd>Vergleichen Sie passende Einrichtungen und fragen Sie freie Plätze direkt an. Verfügbarkeit, Aufnahmebedingungen und Wartezeiten können sich kurzfristig ändern.</dd>
-        </div>
-    </dl>
+    <div class="faq-accordion-list" style="margin-top: 18px;">
+        <details class="faq-item">
+            <summary class="faq-question">Welche Unterlagen werden benötigt?</summary>
+            <div class="faq-answer">
+                <p>Die benötigten Unterlagen hängen von der Einrichtungsart und dem vereinbarten Angebot ab. Fragen Sie die Einrichtung nach einer aktuellen Liste und halten Sie vorhandene Unterlagen der Pflegekasse bereit.</p>
+            </div>
+        </details>
+        <details class="faq-item">
+            <summary class="faq-question">Kann ich einen Besichtigungstermin vereinbaren?</summary>
+            <div class="faq-answer">
+                <p>Ob und wann eine Besichtigung möglich ist, erfahren Sie direkt bei der Einrichtung. Vereinbaren Sie den Termin möglichst vor einer Entscheidung.</p>
+            </div>
+        </details>
+        <details class="faq-item">
+            <summary class="faq-question">Übernimmt die Pflegeversicherung Kosten?</summary>
+            <div class="faq-answer">
+                <p>Die Pflegeversicherung kann sich abhängig von Pflegegrad, Versorgungsform und persönlichen Voraussetzungen an bestimmten Kosten beteiligen. Lassen Sie sich von Einrichtung und Pflegekasse einen individuellen Kostenüberblick geben.</p>
+            </div>
+        </details>
+        <details class="faq-item">
+            <summary class="faq-question">Wie finde ich einen Pflegeplatz?</summary>
+            <div class="faq-answer">
+                <p>Vergleichen Sie passende Einrichtungen und fragen Sie freie Plätze direkt an. Verfügbarkeit, Aufnahmebedingungen und Wartezeiten können sich kurzfristig ändern.</p>
+            </div>
+        </details>
+    </div>
 </section>
 
 @if($contentLinks->isNotEmpty())

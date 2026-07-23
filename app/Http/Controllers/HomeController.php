@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Facility;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class HomeController extends Controller
@@ -20,16 +21,24 @@ class HomeController extends Controller
 
     public function __invoke(): View
     {
-        $topCities = City::query()
+        $facilityCount = Cache::remember('home_facility_count', 86400, fn () => Facility::count());
+        $cityCount = Cache::remember('home_city_count', 86400, fn () => City::count());
+        $topCities = Cache::remember('home_top_cities', 86400, fn () => City::query()
             ->has('facilities')
             ->withCount('facilities')
             ->orderByDesc('facilities_count')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn ($city) => [
+                'name' => $city->name,
+                'slug' => $city->slug,
+            ])
+            ->toArray()
+        );
 
         return view('home', [
-            'facilityCount' => Facility::count(),
-            'cityCount' => City::count(),
+            'facilityCount' => $facilityCount,
+            'cityCount' => $cityCount,
             'topCities' => $topCities,
             'popularSearches' => collect(self::POPULAR_SEARCHES),
         ]);

@@ -164,6 +164,65 @@ class ExampleTest extends TestCase
             ->assertSee('href="'.e(route('directory.index', ['q' => 'Potsdam', 'type' => 'Ambulante Pflege'])).'"', false);
     }
 
+    public function test_homepage_sprint3_features(): void
+    {
+        $city = City::create([
+            'name' => 'Potsdam',
+            'slug' => 'potsdam',
+            'state' => 'Brandenburg',
+            'state_slug' => 'brandenburg',
+        ]);
+        Facility::create([
+            'source_id' => 'sprint3-potsdam-1',
+            'city_id' => $city->id,
+            'name' => 'Test Facility',
+            'slug' => 'test-facility',
+            'postal_code' => '14467',
+            'address' => 'Musterstraße 1',
+            'type' => 'Ambulante Pflege',
+            'care_types' => ['Ambulante Pflege'],
+            'features' => [],
+        ]);
+
+        $response = $this->get('/')->assertOk();
+
+        // 1. Stats block
+        $response->assertSee('PflegeIndex in Zahlen');
+        $response->assertSee('Einrichtungen');
+        $response->assertSee('Städte & Gemeinden', false);
+        $response->assertSee('Brandenburg');
+
+        // 2. Care offers
+        $response->assertSee('Welche Unterstützung suchen Sie?');
+        $response->assertSee('Ambulante Pflegedienste');
+        $response->assertSee('Stationäre und teilstationäre Pflege');
+        $response->assertSee('Krankenhäuser');
+
+        // 3. Trust benefits block
+        $response->assertSee('Warum PflegeIndex?');
+        $response->assertSee('Amtliche Grunddaten');
+        $response->assertSee('Kostenlos nutzbar');
+        $response->assertSee('Schnelle Orientierung');
+
+        // 4. FAQ block
+        $response->assertSee('Wie finde ich einen Pflegedienst oder ein Pflegeheim?');
+        $response->assertSee('Woher stammen die Daten auf PflegeIndex?');
+        $response->assertSee('Ist die Nutzung von PflegeIndex kostenlos?');
+
+        // 5. FAQPage JSON-LD schema
+        $faqSchema = $this->jsonLdOfType($response->getContent(), 'FAQPage');
+        $this->assertNotEmpty($faqSchema);
+        $this->assertEquals('FAQPage', $faqSchema['@type']);
+        $this->assertCount(3, $faqSchema['mainEntity']);
+        $this->assertEquals('Ist die Nutzung von PflegeIndex kostenlos?', $faqSchema['mainEntity'][2]['name']);
+
+        // 6. Footer link list
+        $response->assertSee('Regionale Navigation');
+        $response->assertSee('Alle Städte in Brandenburg');
+        $response->assertSee('Landkreise und kreisfreie Städte');
+        $response->assertSee('Stationäre Pflege');
+    }
+
     /** @return array<string, mixed> */
     private function jsonLdOfType(string $content, string $type): array
     {

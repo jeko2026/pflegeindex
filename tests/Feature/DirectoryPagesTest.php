@@ -52,17 +52,25 @@ class DirectoryPagesTest extends TestCase
         $facility->update(['name' => 'Pflege & Wohnen "Am Park"']);
 
         $expectedTitle = "{$facility->name} in {$city->name} – PflegeIndex";
-        $expectedDescription = "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.";
         $canonicalUrl = route('facilities.show', [$city, $facility]);
 
         $response = $this->get($canonicalUrl)->assertOk();
         $content = $response->getContent();
         $head = $this->headHtml($response);
 
+        // Parse meta tag description from HTML
+        $matched = preg_match('/<meta name="description" content="(.*?)">/', $head, $matches);
+        $this->assertSame(1, $matched);
+        $actualDescription = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        $this->assertStringStartsWith('Pflege & Wohnen "Am Park" in Potsdam', $actualDescription);
+        $this->assertStringContainsString('im amtlichen Einrichtungsverzeichnis des Landes Brandenburg geführt', $actualDescription);
+        $this->assertLessThanOrEqual(158, mb_strlen($actualDescription));
+
         $this->assertStringContainsString('<meta property="og:type" content="website">', $head);
         $this->assertStringContainsString('<meta property="og:title" content="'.e($expectedTitle).'">', $head);
-        $this->assertStringContainsString('<meta name="description" content="'.e($expectedDescription).'">', $head);
-        $this->assertStringContainsString('<meta property="og:description" content="'.e($expectedDescription).'">', $head);
+        $this->assertStringContainsString('<meta name="description" content="'.e($actualDescription).'">', $head);
+        $this->assertStringContainsString('<meta property="og:description" content="'.e($actualDescription).'">', $head);
         $this->assertStringContainsString('<link rel="canonical" href="'.$canonicalUrl.'">', $head);
         $this->assertStringContainsString('<meta property="og:url" content="'.$canonicalUrl.'">', $head);
         $this->assertStringContainsString('<meta property="og:site_name" content="PflegeIndex">', $head);
@@ -87,10 +95,14 @@ class DirectoryPagesTest extends TestCase
         ]);
 
         $canonicalUrl = route('facilities.show', [$city, $facility]);
-        $expectedDescription = "{$facility->name}: {$facility->type} in {$city->name}, {$facility->address}, {$facility->postal_code} {$city->name}.";
         $response = $this->get($canonicalUrl)->assertOk();
         $schema = $this->structuredData($response);
         $localBusiness = $this->schemaNode($schema, 'LocalBusiness');
+
+        // Extract description from meta to compare
+        $matched = preg_match('/<meta name="description" content="(.*?)">/', $this->headHtml($response), $matches);
+        $this->assertSame(1, $matched);
+        $expectedDescription = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         $this->assertSame('https://schema.org', $schema['@context']);
         $this->assertSame($facility->name, $localBusiness['name']);
@@ -108,6 +120,52 @@ class DirectoryPagesTest extends TestCase
         ], $localBusiness['address']);
         $this->assertSame(1, substr_count($this->headHtml($response), '<script type="application/ld+json">'));
         $this->assertStringNotContainsString($facility->name, $this->headHtml($response));
+    }
+
+    public function test_facility_page_sprint4_improvements(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+
+        // 1. Check fallback description does not have source_sector if null
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $response->assertSee('ist als „Ambulante Pflege“ im amtlichen Einrichtungsverzeichnis des Landes Brandenburg geführt.');
+        $response->assertDontSee('ist eine ambulante Pflegeeinrichtung im amtlichen Einrichtungsverzeichnis');
+
+        // 2. Check source_sector mapping when set to 'Ambulante Pflegeeinrichtung'
+        $facility->update(['source_sector' => 'Ambulante Pflegeeinrichtung']);
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $response->assertSee('ist eine ambulante Pflegeeinrichtung im amtlichen Einrichtungsverzeichnis des Landes Brandenburg.');
+        $response->assertDontSee('ist als „Ambulante Pflege“ im amtlichen');
+
+        // 3. Duplicate Adresse section is removed
+        $response->assertDontSee('<h2>Adresse</h2>', false);
+
+        // 4. Address is visible under H1
+        $response->assertSee('class="detail-address"', false);
+        $response->assertSee($facility->address);
+
+        // 5. Empty contacts state shows the prefilled mailto link
+        $facility->update(['phone' => null, 'email' => null, 'website' => null]);
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $response->assertSee('Für diese Einrichtung liegen derzeit keine direkten Kontaktdaten vor.');
+        $response->assertSee('Kontaktdaten ergänzen');
+        $response->assertSee('mailto:info@pflegeindex.com?subject=' . rawurlencode("Kontaktdaten ergänzen: {$facility->name}"), false);
+
+        // 6. Editorial description is used when description is present
+        $facility->update(['description' => 'Dies ist eine sehr schöne, ruhige und freundliche Pflegeeinrichtung mit tollem Garten, in der ältere Menschen professionelle Hilfe bekommen.']);
+        $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
+        $head = $this->headHtml($response);
+        $matched = preg_match('/<meta name="description" content="(.*?)">/', $head, $matches);
+        $this->assertSame(1, $matched);
+        $metaDesc = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $this->assertStringStartsWith('Dies ist eine sehr schöne, ruhige und freundliche Pflegeeinrichtung mit tollem Garten, in der ältere Menschen professionelle Hilfe bekommen.', $metaDesc);
+
+        // 7. FAQ uses details/summary
+        $response->assertSee('<details class="faq-item">', false);
+        $response->assertSee('<summary class="faq-question">', false);
+
+        // 8. Quality widget has aria-label on summary
+        $response->assertSee('<summary aria-label="Erläuterung zur PflegeIndex Qualität">?</summary>', false);
     }
 
     public function test_facility_structured_data_omits_missing_contact_fields(): void

@@ -13,7 +13,7 @@ class ProductionReadinessTest extends TestCase
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('href="'.asset('assets/styles.css').'?v=20260722-1"', false)
+            ->assertSee('href="'.asset('assets/styles.css').'?v=20260723-1"', false)
             ->assertSee('src="'.asset('assets/app.js').'?v=20260722-1"', false)
             ->assertSee('src="'.asset('logo-light.svg').'" alt="PflegeIndex" width="476" height="104"', false);
     }
