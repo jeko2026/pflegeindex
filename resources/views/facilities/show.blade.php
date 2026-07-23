@@ -5,7 +5,8 @@
         ? 'facilities.editorial.faehrmann-pflege-gmbh-16278'
         : null;
     $displayWebsite = $editorialView ? 'https://faehrmann-pflege.de/' : $facility->website;
-    $hasDirectContact = filled($facility->phone) || filled($facility->email) || filled($displayWebsite);
+    $emailIsValid = filled($facility->email) && filter_var(trim($facility->email), FILTER_VALIDATE_EMAIL) !== false;
+    $hasDirectContact = filled($facility->phone) || $emailIsValid || filled($displayWebsite);
     $canonicalUrl = route('facilities.show', [$city, $facility]);
 
     // Build rawDescription for SEO
@@ -115,7 +116,7 @@
             'description' => $pageDescription,
             'url' => $canonicalUrl,
             'telephone' => filled($facility->phone) ? $facility->phone : null,
-            'email' => filled($facility->email) ? $facility->email : null,
+            'email' => $emailIsValid ? $facility->email : null,
             'sameAs' => $displayWebsite ? [$displayWebsite] : null,
             'hasOfferCatalog' => $editorialView ? [
                 '@type' => 'OfferCatalog',
@@ -205,7 +206,7 @@
                     <nav class="mobile-contact-actions" aria-label="Schnellkontakt">
                         @if($facility->phone)<a href="tel:{{ $facility->phone }}">Anrufen</a>@endif
                         @if($displayWebsite)<a href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website</a>@endif
-                        @if($facility->email)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
+                        @if($emailIsValid)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
                     </nav>
                 @endif
                 @include('facilities._quality', ['quality' => $quality])
@@ -265,7 +266,7 @@
                 @else
                     <h2 class="contact-phone contact-phone--pending">Kontakt zur Einrichtung</h2>
                 @endif
-                @if($facility->email)<a class="contact-secondary" href="mailto:{{ $facility->email }}">E-Mail senden</a>@endif
+                @if($emailIsValid)<a class="contact-secondary" href="mailto:{{ $facility->email }}">E-Mail senden</a>@endif
                 @if($displayWebsite)<a class="contact-secondary" href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website öffnen</a>@endif
                 @if($facility->contact_status === 'verified' && $facility->contact_checked_at !== null && filled($facility->contact_source) && (filled($facility->phone) || filled($facility->email) || filled($facility->website)))
                     <small>

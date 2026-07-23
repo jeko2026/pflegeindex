@@ -73,7 +73,7 @@
         <div class="content-cta__actions" role="group" aria-label="Direkter Kontakt zur Einrichtung">
             @if($facility->phone)<a href="tel:{{ $facility->phone }}">Telefon</a>@endif
             @if($displayWebsite)<a href="{{ $displayWebsite }}" target="_blank" rel="noopener noreferrer">Website</a>@endif
-            @if($facility->email)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
+            @if($emailIsValid)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
         </div>
     @endif
 </section>
