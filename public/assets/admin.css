@@ -66,10 +66,12 @@
 .admin-contact-field input, .admin-contact-field--wide input { box-sizing: border-box; height: 48px; min-height: 48px; padding: 10px 12px; border-radius: 9px; font-size: 16px; }
 .admin-contact-field--wide { grid-template-rows: auto 48px 20px; align-content: start; }
 .admin-contact-website-field { grid-template-rows: auto 48px auto 20px; }
-.admin-contact-absent { display: inline-flex; align-items: center; gap: 8px; color: var(--navy-dark); font-weight: 700; cursor: pointer; }
+.admin-contact-absent { display: inline-flex; align-items: center; gap: 8px; color: var(--navy-dark); font-weight: 500; cursor: pointer; }
 .admin-contact-absent input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; padding: 0; accent-color: var(--green); }
+.admin-contact-input--readonly { color: #71808c !important; background: #f3f6f8 !important; cursor: not-allowed; }
 .admin-field__message { min-width: 0; height: 20px; color: var(--muted); font-size: 14px; line-height: 20px; overflow: hidden; overflow-wrap: anywhere; }
 .admin-field__message--error { color: #8c2d35; }
+.admin-contact-website-field + .admin-contact-field--wide { margin-top: 5px; }
 .admin-field--wide { grid-column: 1 / -1; }
 .admin-field label { color: var(--navy-dark); font-weight: 750; }
 .admin-help { color: var(--muted); font-size: 14px; }

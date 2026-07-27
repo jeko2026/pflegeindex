@@ -152,7 +152,7 @@ class AdminTest extends TestCase
                 'contact_locked' => true,
             ])
             ->assertRedirect(route('admin.facilities.edit', $facility))
-            ->assertSessionHasErrors('contact_status');
+            ->assertSessionHasErrors(['contact_status' => 'Mindestens eine Kontaktmöglichkeit (Telefon, E-Mail oder Website) ist erforderlich, um den Status „Geprüft“ zu setzen.']);
 
         $this->assertDatabaseHas('facilities', [
             'id' => $facility->id,
@@ -382,7 +382,10 @@ class AdminTest extends TestCase
             ->get(route('admin.facilities.edit', $facility))
             ->assertOk()
             ->assertSee('Kein offizieller Internetauftritt gefunden')
-            ->assertSee('admin-contact-website-field', false);
+            ->assertSee('admin-contact-website-field', false)
+            ->assertSee('Nach manueller Prüfung wurde keine offizielle Website gefunden.')
+            ->assertSee('https://www.example.de')
+            ->assertSee('website.readOnly = checkbox.checked', false);
 
         $this->actingAs($admin)
             ->put(route('admin.facilities.update', $facility), [

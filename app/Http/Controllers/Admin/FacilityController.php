@@ -133,6 +133,12 @@ class FacilityController extends Controller
 
         if (($validated['contact_status'] ?? null) === 'verified' && ! $hasContact) {
             return back()
+                ->withErrors(['contact_status' => 'Mindestens eine Kontaktmöglichkeit (Telefon, E-Mail oder Website) ist erforderlich, um den Status „Geprüft“ zu setzen.'])
+                ->withInput();
+        }
+
+        if (($validated['contact_status'] ?? null) === 'verified' && ! $hasContact) {
+            return back()
                 ->withErrors(['contact_status' => 'Für den Status „Geprüft“ muss mindestens ein Kontakt eingetragen sein.'])
                 ->withInput();
         }
