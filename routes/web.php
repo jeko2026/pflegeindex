@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\ContactSuggestionController as AdminContactSuggestionController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DataQualityController as AdminDataQualityController;
 use App\Http\Controllers\Admin\FacilityController as AdminFacilityController;
 use App\Http\Controllers\Admin\PasswordController as AdminPasswordController;
 use App\Http\Controllers\CityController;
@@ -49,6 +50,7 @@ Route::middleware('admin-session')->group(function (): void {
 
     Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function (): void {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
+        Route::get('/data-quality', AdminDataQualityController::class)->name('data-quality');
         Route::get('/einrichtungen', [AdminFacilityController::class, 'index'])->name('facilities.index');
         Route::post('/einrichtungen/beschreibungen-veroeffentlichen', [AdminFacilityController::class, 'publishDescriptionDrafts'])->name('facilities.description-drafts.publish');
         Route::get('/einrichtungen/{facility}/bearbeiten', [AdminFacilityController::class, 'edit'])->name('facilities.edit');

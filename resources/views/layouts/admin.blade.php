@@ -16,6 +16,7 @@
                 <a class="admin-brand" href="{{ route('admin.dashboard') }}"><img src="{{ asset('logo-light.svg') }}" alt="PflegeIndex"><span>Verwaltung</span></a>
                 <nav class="admin-nav" aria-label="Verwaltung">
                     <a href="{{ route('admin.facilities.index') }}">Einrichtungen</a>
+                    <a href="{{ route('admin.data-quality') }}">Datenqualität</a>
                     <a href="{{ route('admin.suggestions.index') }}">Kontaktprüfung</a>
                     <a href="{{ route('admin.password.edit') }}">Passwort</a>
                     <a href="{{ route('home') }}" target="_blank" rel="noopener">Website öffnen</a>

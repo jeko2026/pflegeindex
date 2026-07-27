@@ -13,6 +13,8 @@
 .admin-title__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .admin-secondary-button { min-height: 51px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; color: var(--navy-dark); border: 1px solid var(--line); border-radius: 11px; background: #fff; font-weight: 800; text-decoration: none; }
 .admin-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.admin-quality-stats { grid-template-columns: repeat(4,1fr); }
+.admin-filter--quality { grid-template-columns: 1fr 1fr 180px repeat(3,auto) auto; align-items:center; }
 .admin-stat, .admin-panel { padding: 24px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
 .admin-stat strong { display: block; color: var(--navy-dark); font-size: 32px; }
 .admin-stat span { color: var(--muted); }
