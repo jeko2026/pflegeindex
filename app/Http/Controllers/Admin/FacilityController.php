@@ -88,6 +88,8 @@ class FacilityController extends Controller
     {
         $validated = $request->validate([
             'description' => ['nullable', 'string', 'max:3000'],
+            'address' => ['sometimes', 'required', 'string', 'max:255'],
+            'postal_code' => ['sometimes', 'required', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
             'website' => ['nullable', new AbsoluteHttpUrl],
@@ -102,7 +104,7 @@ class FacilityController extends Controller
         unset($validated['suggestion_id']);
         $validated['official_website_absent'] = (bool) ($validated['official_website_absent'] ?? false);
 
-        foreach (['description', 'phone', 'email', 'website', 'contact_source'] as $field) {
+        foreach (['description', 'address', 'postal_code', 'phone', 'email', 'website', 'contact_source'] as $field) {
             if (is_string($validated[$field] ?? null)) {
                 $validated[$field] = trim($validated[$field]);
                 if ($validated[$field] === '') {
@@ -119,6 +121,22 @@ class FacilityController extends Controller
 
         if (is_string($validated['email'] ?? null)) {
             $validated['email'] = Str::lower($validated['email']);
+        }
+
+        $addressChanged = isset($validated['address'])
+            && $this->addressKey($validated['address']) !== $this->addressKey((string) $facility->address);
+        $postalCodeChanged = isset($validated['postal_code'])
+            && trim((string) $validated['postal_code']) !== trim((string) $facility->postal_code);
+        if ($addressChanged || $postalCodeChanged) {
+            if (! filled($validated['contact_source'] ?? null)) {
+                return back()
+                    ->withErrors(['contact_source' => 'Für eine offizielle Adressänderung ist die URL der offiziellen Quelle erforderlich.'])
+                    ->withInput();
+            }
+        }
+
+        if (isset($validated['address']) && ! $addressChanged) {
+            $validated['address'] = $facility->address;
         }
 
         if (($validated['official_website_absent'] ?? false) && filled($validated['website'] ?? null)) {
@@ -170,6 +188,15 @@ class FacilityController extends Controller
         return redirect()
             ->route('admin.facilities.edit', $facility)
             ->with('status', 'Einrichtungsdaten wurden gespeichert.');
+    }
+
+    private function addressKey(string $address): string
+    {
+        $value = Str::lower(trim($address));
+        $value = preg_replace('/\bstr\.?\b/u', 'strasse', $value) ?? $value;
+        $value = str_replace('straße', 'strasse', $value);
+
+        return preg_replace('/[^\p{L}\p{N}]+/u', '', $value) ?? $value;
     }
 
     public function reviewDescriptionDraft(Request $request, Facility $facility): RedirectResponse

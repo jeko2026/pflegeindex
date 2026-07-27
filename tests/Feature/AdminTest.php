@@ -398,6 +398,46 @@ class AdminTest extends TestCase
         $this->assertNull($facility->fresh()->website);
     }
 
+    public function test_official_address_source_is_required_for_real_change_but_not_abbreviation(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+        $facility->update(['address' => 'Zossener Straße 23c', 'postal_code' => '15806']);
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => 'Zossener Str. 23c', 'postal_code' => '15806', 'phone' => '', 'email' => '',
+                'website' => '', 'contact_source' => '', 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Zossener Straße 23c', $facility->fresh()->address);
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => 'Zossener Straße 96, OT Klausdorf', 'postal_code' => '15806', 'phone' => '', 'email' => '',
+                'website' => '', 'contact_source' => '', 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasErrors('contact_source');
+        $this->assertSame('Zossener Straße 23c', $facility->fresh()->address);
+    }
+
+    public function test_official_address_change_saves_source_and_preserves_ot_text(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => 'Zossener Straße 96, OT Klausdorf', 'postal_code' => '15806', 'phone' => '', 'email' => '',
+                'website' => '', 'contact_source' => 'https://official.example.de/einrichtung', 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $fresh = $facility->fresh();
+        $this->assertSame('Zossener Straße 96, OT Klausdorf', $fresh->address);
+        $this->assertSame('https://official.example.de/einrichtung', $fresh->contact_source);
+    }
+
     public function test_official_website_absent_conflicts_with_entered_website(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
