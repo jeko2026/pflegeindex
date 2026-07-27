@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Facility;
 use App\Support\HttpUrl;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 final class QualityScoreService
@@ -33,8 +34,7 @@ final class QualityScoreService
 
         return [
             'score' => $score,
-            'quality_label' => $this->label($score),
-            'quality_color' => $this->color($score),
+            ...$this->qualityForScore($score),
             'progress_percentage' => $score,
             'verified' => $verified,
             'review_documented' => $reviewDocumented,
@@ -52,12 +52,51 @@ final class QualityScoreService
         $scores = $items->map(fn (Facility $facility): array => $this->evaluate($facility));
         $verified = $scores->where('verified', true)->count();
 
+        return $this->aggregateResult($scores, $total, $verified, $items->pluck('type')->filter()->unique()->count());
+    }
+
+    /** Calculate city statistics in chunks without loading every model at once. */
+    public function aggregateQuery(Builder $query): array
+    {
+        $scores = collect();
+        $total = 0;
+        $verified = 0;
+        $types = collect();
+        $query->select(['id', 'city_id', 'type', 'address', 'postal_code', 'phone', 'email', 'website', 'contact_source', 'contact_status', 'contact_checked_at'])
+            ->chunkById(500, function (Collection $facilities) use (&$scores, &$total, &$verified, &$types): void {
+                foreach ($facilities as $facility) {
+                    if (filled($facility->type)) {
+                        $types->push($facility->type);
+                    }
+                    $score = $this->evaluate($facility);
+                    $scores->push($score);
+                    $total++;
+                    $verified += $score['verified'] ? 1 : 0;
+                }
+            });
+
+        return $this->aggregateResult($scores, $total, $verified, $types->unique()->count());
+    }
+
+    public static function cityCacheKey(int $cityId): string
+    {
+        return 'city-data-quality:'.$cityId;
+    }
+
+    /** @param Collection<int, array{score:int, verified:bool}> $scores */
+    private function aggregateResult(Collection $scores, int $total, int $verified, int $typeCount = 0): array
+    {
+        $average = $total > 0 ? round($scores->avg('score'), 2) : 0.0;
+        $quality = $this->qualityForScore((int) round($average));
+
         return [
-            'average_score' => $total > 0 ? round($scores->avg('score'), 2) : 0.0,
+            'average_score' => $average,
             'verified_percentage' => $total > 0 ? round(($verified / $total) * 100, 2) : 0.0,
             'verified_count' => $verified,
             'unverified_count' => $total - $verified,
             'total_facilities' => $total,
+            'type_count' => $typeCount,
+            ...$quality,
         ];
     }
 
@@ -69,25 +108,25 @@ final class QualityScoreService
             && $facility->city_id !== null;
     }
 
-    private function label(int $score): string
+    public function qualityForScore(int $score): array
     {
-        return match (true) {
-            $score >= 90 => 'Sehr hoch',
-            $score >= 75 => 'Hoch',
-            $score >= 50 => 'Gut',
-            $score >= 25 => 'Teilweise',
-            default => 'Unvollständig',
-        };
-    }
+        if ($score >= 90) {
+            return ['quality_label' => 'Sehr hoch', 'quality_color' => 'green', 'progress_percentage' => max(0, min(100, $score))];
+        }
+        if ($score >= 75) {
+            return ['quality_label' => 'Hoch', 'quality_color' => 'teal', 'progress_percentage' => $score];
+        }
+        if ($score >= 50) {
+            return ['quality_label' => 'Gut', 'quality_color' => 'amber', 'progress_percentage' => $score];
+        }
+        if ($score >= 25) {
+            return ['quality_label' => 'Teilweise', 'quality_color' => 'orange', 'progress_percentage' => $score];
+        }
 
-    private function color(int $score): string
-    {
-        return match (true) {
-            $score >= 90 => 'green',
-            $score >= 75 => 'teal',
-            $score >= 50 => 'amber',
-            $score >= 25 => 'orange',
-            default => 'red',
-        };
+        return [
+            'quality_label' => 'Unvollständig',
+            'quality_color' => 'red',
+            'progress_percentage' => max(0, min(100, $score)),
+        ];
     }
 }

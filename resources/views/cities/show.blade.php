@@ -96,6 +96,21 @@
                 <div><strong>{{ $typeCount }}</strong><span>Einrichtungsarten</span></div>
             </div>
             <section aria-labelledby="city-facilities-title">
+                @if($qualityStats)
+                    <section class="city-quality-summary" aria-labelledby="city-quality-title" data-city-quality-score="{{ $qualityStats['average_score'] }}">
+                        <div class="city-quality-summary__heading">
+                            <div>
+                                <p class="eyebrow">Datenqualität</p>
+                                <h2 id="city-quality-title">Datenqualität in {{ $city->name }}</h2>
+                            </div>
+                            <strong>{{ $qualityStats['quality_label'] }}</strong>
+                        </div>
+                        <p>Durchschnittliche Datenqualität: <b>{{ number_format($qualityStats['average_score'], 0, ',', '.') }} %</b></p>
+                        <p>Geprüfte Einrichtungen: <b>{{ $qualityStats['verified_count'] }} von {{ $qualityStats['total_facilities'] }}</b></p>
+                        <p>{{ number_format($qualityStats['verified_percentage'], 0, ',', '.') }} % der Einrichtungen wurden geprüft</p>
+                        <div class="city-quality-summary__bar" role="progressbar" aria-label="Durchschnittliche Datenqualität" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $qualityStats['progress_percentage'] }}"><span class="city-quality-summary__bar-fill city-quality-summary__bar-fill--{{ $qualityStats['quality_color'] }}" style="width:{{ $qualityStats['progress_percentage'] }}%"></span></div>
+                    </section>
+                @endif
                 <div class="results-heading" style="margin-top:42px">
                     <h2 id="city-facilities-title">Alle Pflegeeinrichtungen in {{ $city->name }}</h2>
                     <p>{{ $facilities->count() }} auf dieser Seite · alphabetisch sortiert</p>

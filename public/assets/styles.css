@@ -222,6 +222,19 @@ img, svg { display: block; }
 .quality-score-panel__bar-fill--orange { background:#c56a2f; }
 .quality-score-panel__bar-fill--red { background:#b64c4c; }
 .quality-score-panel__meta { margin:10px 0 0; color:#5b6c61; font-size:12px; overflow-wrap:anywhere; }
+.city-quality-summary { margin:24px 0 28px; padding:16px 18px; border:1px solid #cfdbd3; border-radius:14px; background:#f7faf8; }
+.city-quality-summary__heading { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+.city-quality-summary h2 { margin:0; color:var(--navy-dark); font-family:"Manrope",sans-serif; font-size:18px; }
+.city-quality-summary__heading strong { color:var(--green-dark); font-size:14px; }
+.city-quality-summary p { margin:7px 0 0; color:#4e6156; font-size:14px; }
+.city-quality-summary__bar { height:7px; margin-top:13px; overflow:hidden; border-radius:999px; background:#dce5df; }
+.city-quality-summary__bar-fill { display:block; height:100%; border-radius:inherit; }
+.city-quality-summary__bar-fill--green { background:#2f6f44; }
+.city-quality-summary__bar-fill--teal { background:#247b78; }
+.city-quality-summary__bar-fill--amber { background:#c38a21; }
+.city-quality-summary__bar-fill--orange { background:#c56a2f; }
+.city-quality-summary__bar-fill--red { background:#b64c4c; }
+@media (max-width: 600px) { .city-quality-summary__heading { align-items:flex-start; flex-direction:column; gap:4px; } }
 .quality-panel__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .quality-panel__eyebrow { margin: 0 0 4px; color: var(--green-dark); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .quality-panel h2 { margin: 0; color: var(--navy-dark); font-family: "Manrope",sans-serif; font-size: 18px; }

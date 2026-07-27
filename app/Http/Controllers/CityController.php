@@ -11,10 +11,12 @@ use App\Platform\DirectoryCore\Domain\PaginationOptions;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
 use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
 use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryPresenter;
+use App\Services\QualityScoreService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Cache;
 
 class CityController extends Controller
 {
@@ -25,6 +27,7 @@ class CityController extends Controller
         Request $request,
         PflegeEntryRepository $repository,
         PflegeEntryPresenter $presenter,
+        QualityScoreService $qualityScoreService,
     ): View {
         $stateSlug = (string) $request->route('stateSlug');
 
@@ -50,7 +53,14 @@ class CityController extends Controller
         );
 
         $facilityCount = $facilities->total();
-        $typeCount = $city->facilities()->distinct()->count('type');
+        $qualityStats = $facilityCount > 0
+            ? Cache::remember(
+                QualityScoreService::cityCacheKey($city->id),
+                now()->addDay(),
+                fn (): array => $qualityScoreService->aggregateQuery($city->facilities()->getQuery()),
+            )
+            : null;
+        $typeCount = $qualityStats['type_count'] ?? 0;
 
         // Load sibling cities from the same GeoCore district (no N+1: single query)
         $nearbyCities = collect();
@@ -72,6 +82,6 @@ class CityController extends Controller
             }
         }
 
-        return view('cities.show', compact('city', 'facilities', 'facilityCount', 'typeCount', 'nearbyCities'));
+        return view('cities.show', compact('city', 'facilities', 'facilityCount', 'typeCount', 'nearbyCities', 'qualityStats'));
     }
 }

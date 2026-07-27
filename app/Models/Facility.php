@@ -6,10 +6,24 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
+use App\Services\QualityScoreService;
 
 class Facility extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        $forgetQualityCache = static function (self $facility): void {
+            if ($facility->city_id !== null) {
+                Cache::forget(QualityScoreService::cityCacheKey((int) $facility->city_id));
+            }
+        };
+
+        static::saved($forgetQualityCache);
+        static::deleted($forgetQualityCache);
+    }
 
     protected $fillable = [
         'source_id',
