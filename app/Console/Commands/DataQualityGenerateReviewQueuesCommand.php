@@ -36,7 +36,7 @@ final class DataQualityGenerateReviewQueuesCommand extends Command
         })->unique()->flip();
 
         $queues = [
-            'missing_email' => $facilities->filter(fn (Facility $f): bool => blank($f->email)),
+            'missing_email' => $facilities->filter(fn (Facility $f): bool => blank($f->email) && ! $f->official_email_absent),
             'missing_website' => $facilities->filter(fn (Facility $f): bool => blank($f->website) && ! $f->official_website_absent),
             'missing_phone' => $facilities->filter(fn (Facility $f): bool => blank($f->phone)),
             'address_review' => $this->addressCandidates($facilities, $issuesByFacility),
@@ -134,7 +134,7 @@ final class DataQualityGenerateReviewQueuesCommand extends Command
     {
         return "# Specialistische Prüfwarteschlangen\n\n".
             "Diese Dateien wurden read-only aus der aktuellen Datenbank erzeugt. Es wurden keine Datensätze geändert und keine Review-Ergebnisse angewendet. Sortierung: Ort, Name.\n\n".
-            "- `missing-email.csv` – Einrichtungen ohne E-Mail-Adresse.\n".
+            "- `missing-email.csv` – Einrichtungen ohne E-Mail-Adresse und ohne bestätigte Feststellung, dass keine offizielle E-Mail-Adresse gefunden wurde.\n".
             "- `missing-website.csv` – Einrichtungen ohne Website und ohne bestätigte Feststellung, dass kein offizieller Internetauftritt existiert.\n".
             "- `missing-phone.csv` – Einrichtungen ohne Telefonnummer.\n".
             "- `address-review.csv` – fehlende oder auffällige Postleitzahl, Adresse und Normalisierungsbefunde.\n".

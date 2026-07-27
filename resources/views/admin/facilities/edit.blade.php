@@ -60,7 +60,7 @@
                 <div class="admin-field"><label for="address">Offizielle Adresse</label><input id="address" name="address" value="{{ old('address', $facility->address) }}" placeholder="Straße und Hausnummer">@include('admin.facilities._field-message', ['field' => 'address'])</div>
                 <div class="admin-field"><label for="postal_code">Postleitzahl</label><input id="postal_code" name="postal_code" value="{{ old('postal_code', $facility->postal_code) }}" inputmode="numeric">@include('admin.facilities._field-message', ['field' => 'postal_code'])</div>
                 <div class="admin-field admin-contact-field"><label for="phone">Telefon</label><input id="phone" name="phone" value="{{ old('phone', $facility->phone) }}" placeholder="+49...">@include('admin.facilities._field-message', ['field' => 'phone', 'helper' => 'Am besten im internationalen Format.'])</div>
-                <div class="admin-field admin-contact-field"><label for="email">E-Mail</label><input id="email" name="email" type="email" value="{{ old('email', $facility->email) }}">@include('admin.facilities._field-message', ['field' => 'email'])</div>
+                <div class="admin-field admin-contact-field admin-contact-email-field"><label for="email">E-Mail</label><input id="email" name="email" type="email" value="{{ old('email', $facility->email) }}"><label class="admin-contact-absent"><input name="official_email_absent" type="hidden" value="0"><input id="official_email_absent" name="official_email_absent" type="checkbox" value="1" @checked(old('official_email_absent', $facility->official_email_absent ?? false))> Keine offizielle E-Mail-Adresse gefunden</label>@include('admin.facilities._field-message', ['field' => 'email', 'helper' => 'Nur aktivieren, wenn die offizielle Website und verfügbare verlässliche Quellen geprüft wurden.'])</div>
                 <div class="admin-field admin-field--wide admin-contact-field--wide admin-contact-website-field"><label for="website">Website</label><input id="website" name="website" type="url" value="{{ old('website', $facility->website) }}" placeholder="https://www.example.de"><label class="admin-contact-absent"><input name="official_website_absent" type="hidden" value="0"><input id="official_website_absent" name="official_website_absent" type="checkbox" value="1" @checked(old('official_website_absent', $facility->official_website_absent ?? false))> Kein offizieller Internetauftritt gefunden</label>@include('admin.facilities._field-message', ['field' => 'website', 'helper' => 'Nach manueller Prüfung wurde keine offizielle Website gefunden.'])</div>
                 <div class="admin-field admin-field--wide admin-contact-field--wide"><label for="contact_source">Quelle der Kontaktdaten</label><input id="contact_source" name="contact_source" type="url" value="{{ old('contact_source', $facility->contact_source) }}" placeholder="https://...">@include('admin.facilities._field-message', ['field' => 'contact_source', 'helper' => 'Direkter Link zur offiziellen Seite mit den Kontaktdaten.'])</div>
                 <div class="admin-field"><label for="contact_status">Prüfstatus</label><select id="contact_status" name="contact_status"><option value="">Noch offen</option><option value="verified" @selected(old('contact_status', $facility->contact_status) === 'verified')>Geprüft</option><option value="pending" @selected(old('contact_status', $facility->contact_status) === 'pending')>In Prüfung</option><option value="not_found" @selected(old('contact_status', $facility->contact_status) === 'not_found')>Nicht gefunden</option></select></div>
@@ -72,14 +72,21 @@
             (() => {
                 const checkbox = document.getElementById('official_website_absent');
                 const website = document.getElementById('website');
-                if (!checkbox || !website) return;
-                const syncWebsiteState = () => {
-                    website.readOnly = checkbox.checked;
-                    website.classList.toggle('admin-contact-input--readonly', checkbox.checked);
-                    website.setAttribute('aria-readonly', checkbox.checked ? 'true' : 'false');
+                const emailCheckbox = document.getElementById('official_email_absent');
+                const email = document.getElementById('email');
+                const syncFieldState = (toggle, field, clearOnCheck = false) => {
+                    if (!toggle || !field) return;
+                    const sync = () => {
+                        if (toggle.checked && clearOnCheck) field.value = '';
+                        field.readOnly = toggle.checked;
+                        field.classList.toggle('admin-contact-input--readonly', toggle.checked);
+                        field.setAttribute('aria-readonly', toggle.checked ? 'true' : 'false');
+                    };
+                    toggle.addEventListener('change', sync);
+                    sync();
                 };
-                checkbox.addEventListener('change', syncWebsiteState);
-                syncWebsiteState();
+                syncFieldState(checkbox, website);
+                syncFieldState(emailCheckbox, email, true);
             })();
         </script>
     </main>

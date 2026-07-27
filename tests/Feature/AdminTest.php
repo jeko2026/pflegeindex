@@ -385,7 +385,7 @@ class AdminTest extends TestCase
             ->assertSee('admin-contact-website-field', false)
             ->assertSee('Nach manueller Prüfung wurde keine offizielle Website gefunden.')
             ->assertSee('https://www.example.de')
-            ->assertSee('website.readOnly = checkbox.checked', false);
+            ->assertSee('field.readOnly = toggle.checked', false);
 
         $this->actingAs($admin)
             ->put(route('admin.facilities.update', $facility), [
@@ -396,6 +396,58 @@ class AdminTest extends TestCase
 
         $this->assertTrue((bool) $facility->fresh()->official_website_absent);
         $this->assertNull($facility->fresh()->website);
+    }
+
+    public function test_official_email_absent_requires_source_clears_email_and_can_be_reused(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+        $facility->update(['email' => 'kontakt@example.de']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.edit', $facility))
+            ->assertOk()
+            ->assertSee('Keine offizielle E-Mail-Adresse gefunden')
+            ->assertSee('Nur aktivieren, wenn die offizielle Website und verfügbare verlässliche Quellen geprüft wurden.');
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => $facility->address, 'postal_code' => $facility->postal_code,
+                'phone' => '', 'email' => '', 'official_email_absent' => 1, 'website' => '',
+                'contact_source' => '', 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasErrors('contact_source');
+        $this->assertSame('kontakt@example.de', $facility->fresh()->email);
+
+        $source = 'https://official.example.de/kontakt';
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => $facility->address, 'postal_code' => $facility->postal_code,
+                'phone' => '', 'email' => '', 'official_email_absent' => 1, 'website' => '',
+                'contact_source' => $source, 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($facility->fresh()->email);
+        $this->assertTrue((bool) $facility->fresh()->official_email_absent);
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => $facility->address, 'postal_code' => $facility->postal_code,
+                'phone' => '', 'email' => 'neu@example.de', 'official_email_absent' => 0, 'website' => '',
+                'contact_source' => $source, 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('neu@example.de', $facility->fresh()->email);
+        $this->assertFalse((bool) $facility->fresh()->official_email_absent);
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'address' => $facility->address, 'postal_code' => $facility->postal_code,
+                'phone' => '', 'email' => '', 'official_email_absent' => 1, 'website' => '',
+                'contact_source' => $source, 'contact_status' => 'pending', 'contact_locked' => 0,
+            ])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($facility->fresh()->email);
     }
 
     public function test_official_address_source_is_required_for_real_change_but_not_abbreviation(): void

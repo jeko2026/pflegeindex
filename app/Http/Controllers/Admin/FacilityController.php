@@ -92,6 +92,7 @@ class FacilityController extends Controller
             'postal_code' => ['sometimes', 'required', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
+            'official_email_absent' => ['sometimes', 'boolean'],
             'website' => ['nullable', new AbsoluteHttpUrl],
             'official_website_absent' => ['sometimes', 'boolean'],
             'contact_source' => ['nullable', new AbsoluteHttpUrl],
@@ -103,6 +104,7 @@ class FacilityController extends Controller
         $suggestionId = $validated['suggestion_id'] ?? null;
         unset($validated['suggestion_id']);
         $validated['official_website_absent'] = (bool) ($validated['official_website_absent'] ?? false);
+        $validated['official_email_absent'] = (bool) ($validated['official_email_absent'] ?? false);
 
         foreach (['description', 'address', 'postal_code', 'phone', 'email', 'website', 'contact_source'] as $field) {
             if (is_string($validated[$field] ?? null)) {
@@ -121,6 +123,18 @@ class FacilityController extends Controller
 
         if (is_string($validated['email'] ?? null)) {
             $validated['email'] = Str::lower($validated['email']);
+        }
+
+        if (filled($validated['email'] ?? null)) {
+            $validated['official_email_absent'] = false;
+        } elseif ($validated['official_email_absent']) {
+            $wasAlreadyConfirmed = (bool) $facility->official_email_absent;
+            if (! $wasAlreadyConfirmed && ! filled($validated['contact_source'] ?? null)) {
+                return back()
+                    ->withErrors(['contact_source' => 'Für die Bestätigung einer fehlenden offiziellen E-Mail-Adresse ist die URL der geprüften Quelle erforderlich.'])
+                    ->withInput();
+            }
+            $validated['email'] = null;
         }
 
         $addressChanged = isset($validated['address'])

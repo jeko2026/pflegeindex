@@ -31,6 +31,7 @@ class Facility extends Model
         'description_ai_assisted',
         'phone',
         'email',
+        'official_email_absent',
         'website',
         'official_website_absent',
         'contact_source',
@@ -54,6 +55,7 @@ class Facility extends Model
             'contact_checked_at' => 'datetime',
             'contact_locked' => 'boolean',
             'official_website_absent' => 'boolean',
+            'official_email_absent' => 'boolean',
         ];
     }
 

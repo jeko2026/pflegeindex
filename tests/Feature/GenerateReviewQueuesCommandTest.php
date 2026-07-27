@@ -19,6 +19,7 @@ final class GenerateReviewQueuesCommandTest extends TestCase
         $first = Facility::create(array_merge($defaults, ['source_id' => 'queue-1', 'name' => 'Alpha', 'email' => null, 'website' => null, 'phone' => null]));
         Facility::create(array_merge($defaults, ['source_id' => 'queue-2', 'slug' => 'beta', 'name' => 'Beta', 'email' => 'beta@example.org', 'website' => 'https://beta.example.org', 'phone' => '+49 331 123456']));
         Facility::create(array_merge($defaults, ['source_id' => 'queue-3', 'slug' => 'gamma', 'name' => 'Gamma', 'email' => 'gamma@example.org', 'website' => null, 'phone' => '+49 331 654321', 'official_website_absent' => true]));
+        Facility::create(array_merge($defaults, ['source_id' => 'queue-4', 'slug' => 'delta', 'name' => 'Delta', 'email' => null, 'website' => 'https://delta.example.org', 'phone' => '+49 331 111222', 'official_email_absent' => true]));
         $before = Facility::query()->orderBy('id')->get()->toJson();
 
         $this->artisan('data-quality:generate-review-queues')->assertExitCode(0);
