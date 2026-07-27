@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\File;
 
 final class FacilitiesExportOutsourcingCommand extends Command
 {
-    protected $signature = 'facilities:export-outsourcing {--dry-run : Report counts without creating files}';
+    protected $signature = 'facilities:export-outsourcing {--dry-run : Report counts without creating files} {--output= : Optional output directory for controlled local runs}';
 
     protected $description = 'Export incomplete facility contacts for an external read-only review';
 
@@ -49,7 +49,7 @@ final class FacilitiesExportOutsourcingCommand extends Command
             return self::SUCCESS;
         }
 
-        $directory = storage_path('app/exports');
+        $directory = $this->option('output') ?: storage_path('app/exports');
         File::ensureDirectoryExists($directory);
         $timestamp = now()->format('Y-m-d_His');
         $csvPath = $directory.'/facilities_outsourcing_'.$timestamp.'.csv';

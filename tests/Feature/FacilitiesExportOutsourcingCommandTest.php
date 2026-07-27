@@ -17,7 +17,7 @@ final class FacilitiesExportOutsourcingCommandTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->directory = storage_path('app/exports');
+        $this->directory = storage_path('app/exports-test-'.bin2hex(random_bytes(4)));
         File::deleteDirectory($this->directory);
     }
 
@@ -34,7 +34,7 @@ final class FacilitiesExportOutsourcingCommandTest extends TestCase
         Facility::create($base + ['name' => 'Alpha', 'phone' => null, 'email' => 'a@example.de', 'website' => 'https://a.example.de']);
         Facility::create(['city_id' => $city->id, 'type' => 'Ambulante Pflege', 'postal_code' => '14467', 'address' => 'Teststraße 2', 'source_id' => 'export-2', 'slug' => 'beta', 'name' => 'Beta', 'contact_status' => 'verified', 'contact_source' => 'https://b.example.de', 'contact_checked_at' => now(), 'phone' => '+49 331 123456', 'email' => 'b@example.de', 'website' => 'https://b.example.de']);
 
-        $this->artisan('facilities:export-outsourcing', ['--dry-run' => true])
+        $this->artisan('facilities:export-outsourcing', ['--dry-run' => true, '--output' => $this->directory])
             ->expectsOutputToContain('requires review: 1')
             ->expectsOutputToContain('export rows: 1')
             ->assertExitCode(0);
@@ -48,7 +48,7 @@ final class FacilitiesExportOutsourcingCommandTest extends TestCase
         Facility::create($base + ['source_id' => 'export-1', 'slug' => 'zeta', 'name' => 'Zeta']);
         Facility::create($base + ['source_id' => 'export-2', 'slug' => 'alpha', 'name' => 'Alpha', 'official_email_absent' => true]);
 
-        $this->artisan('facilities:export-outsourcing')->assertExitCode(0);
+        $this->artisan('facilities:export-outsourcing', ['--output' => $this->directory])->assertExitCode(0);
         $csv = collect(File::files($this->directory))->first(fn ($file) => str_ends_with($file->getFilename(), '.csv'));
         $this->assertNotNull($csv);
         $contents = File::get($csv->getPathname());

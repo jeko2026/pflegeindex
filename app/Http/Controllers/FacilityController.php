@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Services\QualityScoreService;
 use Illuminate\View\View;
 
 class FacilityController extends Controller
 {
-    public function show(City $city, Facility $facility): View
+    public function show(City $city, Facility $facility, QualityScoreService $qualityScoreService): View
     {
         $relatedFacilities = Facility::query()
             ->with('city')
@@ -20,6 +21,11 @@ class FacilityController extends Controller
             ->limit(3)
             ->get();
 
-        return view('facilities.show', compact('city', 'facility', 'relatedFacilities'));
+        return view('facilities.show', [
+            'city' => $city,
+            'facility' => $facility,
+            'relatedFacilities' => $relatedFacilities,
+            'qualityScore' => $qualityScoreService->evaluate($facility),
+        ]);
     }
 }

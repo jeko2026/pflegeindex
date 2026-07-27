@@ -203,6 +203,25 @@ img, svg { display: block; }
 .source-explanation { margin: 14px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .mobile-contact-actions { display: none; }
 .quality-panel { margin-top: 20px; padding: 18px; border: 1px solid #cfdbd3; border-radius: 14px; background: #f7faf8; }
+.quality-score-panel { margin-top: 20px; padding: 18px; border: 1px solid #cfdbd3; border-radius: 14px; background: #f7faf8; }
+.quality-score-panel__heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.quality-score-panel__eyebrow { margin:0 0 4px; color:var(--green-dark); font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.quality-score-panel h2 { margin:0; color:var(--navy-dark); font-family:"Manrope",sans-serif; font-size:18px; }
+.quality-score-panel__score { font-family:"Manrope",sans-serif; font-size:30px; line-height:1; }
+.quality-score-panel__score span { font-size:14px; color:#5b6c61; }
+.quality-score-panel__score--green { color:#2f6f44; }
+.quality-score-panel__score--teal { color:#247b78; }
+.quality-score-panel__score--amber { color:#a36b00; }
+.quality-score-panel__score--orange { color:#b4551d; }
+.quality-score-panel__score--red { color:#a43b3b; }
+.quality-score-panel__bar { height:8px; margin-top:14px; overflow:hidden; border-radius:999px; background:#dce5df; }
+.quality-score-panel__bar-fill { display:block; height:100%; border-radius:inherit; }
+.quality-score-panel__bar-fill--green { background:#2f6f44; }
+.quality-score-panel__bar-fill--teal { background:#247b78; }
+.quality-score-panel__bar-fill--amber { background:#c38a21; }
+.quality-score-panel__bar-fill--orange { background:#c56a2f; }
+.quality-score-panel__bar-fill--red { background:#b64c4c; }
+.quality-score-panel__meta { margin:10px 0 0; color:#5b6c61; font-size:12px; overflow-wrap:anywhere; }
 .quality-panel__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .quality-panel__eyebrow { margin: 0 0 4px; color: var(--green-dark); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .quality-panel h2 { margin: 0; color: var(--navy-dark); font-family: "Manrope",sans-serif; font-size: 18px; }
