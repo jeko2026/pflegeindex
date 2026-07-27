@@ -373,6 +373,43 @@ class AdminTest extends TestCase
             ->assertDontSee('Vollständiger Kontakt');
     }
 
+    public function test_official_website_absent_can_be_saved_without_website(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.edit', $facility))
+            ->assertOk()
+            ->assertSee('Kein offizieller Internetauftritt gefunden')
+            ->assertSee('admin-contact-website-field', false);
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'phone' => '', 'email' => '', 'website' => '', 'contact_source' => '',
+                'contact_status' => 'pending', 'contact_locked' => 0, 'official_website_absent' => 1,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue((bool) $facility->fresh()->official_website_absent);
+        $this->assertNull($facility->fresh()->website);
+    }
+
+    public function test_official_website_absent_conflicts_with_entered_website(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $facility = $this->createFacility();
+
+        $this->actingAs($admin)
+            ->put(route('admin.facilities.update', $facility), [
+                'phone' => '', 'email' => '', 'website' => 'https://example.de', 'contact_source' => '',
+                'contact_status' => 'pending', 'contact_locked' => 0, 'official_website_absent' => 1,
+            ])
+            ->assertSessionHasErrors('website');
+
+        $this->assertNull($facility->fresh()->website);
+    }
+
     private function createFacility(): Facility
     {
         $city = City::create([

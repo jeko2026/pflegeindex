@@ -62,6 +62,14 @@
 .admin-content-heading p { margin: 8px 0 0; color: var(--muted); }
 .admin-form__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .admin-field { display: grid; gap: 7px; }
+.admin-contact-field { grid-template-rows: auto 48px 20px; align-content: start; }
+.admin-contact-field input, .admin-contact-field--wide input { box-sizing: border-box; height: 48px; min-height: 48px; padding: 10px 12px; border-radius: 9px; font-size: 16px; }
+.admin-contact-field--wide { grid-template-rows: auto 48px 20px; align-content: start; }
+.admin-contact-website-field { grid-template-rows: auto 48px auto 20px; }
+.admin-contact-absent { display: inline-flex; align-items: center; gap: 8px; color: var(--navy-dark); font-weight: 700; cursor: pointer; }
+.admin-contact-absent input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; padding: 0; accent-color: var(--green); }
+.admin-field__message { min-width: 0; height: 20px; color: var(--muted); font-size: 14px; line-height: 20px; overflow: hidden; overflow-wrap: anywhere; }
+.admin-field__message--error { color: #8c2d35; }
 .admin-field--wide { grid-column: 1 / -1; }
 .admin-field label { color: var(--navy-dark); font-weight: 750; }
 .admin-help { color: var(--muted); font-size: 14px; }
@@ -115,6 +123,18 @@
   .admin-research { align-items: flex-start; flex-direction: column; }
   .admin-bulk-bar { align-items: stretch; flex-direction: column; }
   .admin-field--wide, .admin-filter .primary-button { grid-column: auto; }
+  .admin-contact-field, .admin-contact-field--wide { grid-template-rows: auto 48px auto; }
+  .admin-contact-website-field { grid-template-rows: auto 48px auto auto; }
+  .admin-contact-field .admin-field__message, .admin-contact-field--wide .admin-field__message { min-height: 0; }
+  .admin-contact-field .admin-field__message[aria-hidden="true"] { display: none; }
   .admin-contact-filter__panel { position: static; width: 100%; max-width: none; margin-top: 7px; box-shadow: none; }
   .admin-contact-filter__row { grid-template-columns: 1fr repeat(3,auto); gap: 10px; }
+}
+
+@media (max-width: 767px) {
+  .admin-form__grid { grid-template-columns: 1fr; }
+  .admin-field--wide { grid-column: auto; }
+  .admin-contact-field, .admin-contact-field--wide { grid-template-rows: auto 48px auto; }
+  .admin-contact-field .admin-field__message, .admin-contact-field--wide .admin-field__message { height: auto; min-height: 0; }
+  .admin-contact-field .admin-field__message[aria-hidden="true"] { display: none; }
 }

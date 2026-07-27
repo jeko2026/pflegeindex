@@ -91,6 +91,7 @@ class FacilityController extends Controller
             'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
             'website' => ['nullable', new AbsoluteHttpUrl],
+            'official_website_absent' => ['sometimes', 'boolean'],
             'contact_source' => ['nullable', new AbsoluteHttpUrl],
             'contact_status' => ['nullable', Rule::in(['verified', 'pending', 'not_found'])],
             'contact_locked' => ['required', 'boolean'],
@@ -99,6 +100,7 @@ class FacilityController extends Controller
 
         $suggestionId = $validated['suggestion_id'] ?? null;
         unset($validated['suggestion_id']);
+        $validated['official_website_absent'] = (bool) ($validated['official_website_absent'] ?? false);
 
         foreach (['description', 'phone', 'email', 'website', 'contact_source'] as $field) {
             if (is_string($validated[$field] ?? null)) {
@@ -117,6 +119,12 @@ class FacilityController extends Controller
 
         if (is_string($validated['email'] ?? null)) {
             $validated['email'] = Str::lower($validated['email']);
+        }
+
+        if (($validated['official_website_absent'] ?? false) && filled($validated['website'] ?? null)) {
+            return back()
+                ->withErrors(['website' => 'Website und „Kein offizieller Internetauftritt gefunden“ können nicht gleichzeitig gespeichert werden.'])
+                ->withInput();
         }
 
         $hasContact = filled($validated['phone'] ?? null)
