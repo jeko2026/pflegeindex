@@ -17,4 +17,30 @@
     @else
         <p class="quality-score-panel__meta">Noch nicht vollständig geprüft.</p>
     @endif
+
+    @php
+        $fieldStatuses = collect($qualityScore['field_statuses']);
+    @endphp
+    <div class="quality-score-statuses" aria-label="Status der Datenfelder">
+        @foreach([
+            'present' => 'Vorhanden',
+            'officially_absent' => 'Nicht vorhanden',
+            'missing' => 'Fehlt oder noch nicht bestätigt',
+        ] as $status => $heading)
+            @php($items = $fieldStatuses->where('status', $status))
+            @if($items->isNotEmpty())
+                <div class="quality-score-statuses__group quality-score-statuses__group--{{ $status }}">
+                    <h3>{{ $heading }}</h3>
+                    <ul>
+                        @foreach($items as $item)
+                            <li>
+                                <span aria-hidden="true">{{ $status === 'present' ? '✓' : ($status === 'officially_absent' ? '—' : '✕') }}</span>
+                                <span aria-label="{{ $item['accessible_label'] }}">{{ $item['display_text'] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+        @endforeach
+    </div>
 </section>

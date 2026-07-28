@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 final class QualityScoreService
 {
-    /** @return array{score:int, quality_label:string, quality_color:string, progress_percentage:int, verified:bool, review_documented:bool, verified_at:?string, source:?string, criteria:array<string,bool>} */
+    /** @return array{score:int, quality_label:string, quality_color:string, progress_percentage:int, verified:bool, review_documented:bool, verified_at:?string, source:?string, criteria:array<string,bool>, field_statuses:array<string, array{key:string, label:string, status:string, display_text:string, accessible_label:string}>} */
     public function evaluate(Facility $facility): array
     {
         $criteria = [
@@ -41,7 +41,57 @@ final class QualityScoreService
             'verified_at' => $reviewDocumented ? $facility->contact_checked_at?->format('d.m.Y') : null,
             'source' => $reviewDocumented ? (string) $facility->contact_source : null,
             'criteria' => $criteria,
+            'field_statuses' => $this->fieldStatuses($facility, $criteria),
         ];
+    }
+
+    /** @param array<string, bool> $criteria @return array<string, array{key:string, label:string, status:string, display_text:string, accessible_label:string}> */
+    public function fieldStatuses(Facility $facility, ?array $criteria = null): array
+    {
+        $criteria ??= [
+            'phone' => filled($facility->phone),
+            'email' => filled($facility->email),
+            'website' => filled($facility->website),
+            'address' => $this->addressIsConfirmed($facility),
+            'source' => filled($facility->contact_source),
+            'verified' => $facility->contact_status === 'verified',
+        ];
+
+        $fields = [
+            'phone' => ['label' => 'Telefon', 'official_absent' => false],
+            'email' => ['label' => 'E-Mail', 'official_absent' => (bool) $facility->official_email_absent],
+            'website' => ['label' => 'Website', 'official_absent' => (bool) $facility->official_website_absent],
+            'address' => ['label' => 'Adresse', 'official_absent' => false],
+            'source' => ['label' => 'Quelle', 'official_absent' => false],
+            'verified' => ['label' => 'Verifizierung', 'official_absent' => false],
+        ];
+
+        $statuses = [];
+        foreach ($fields as $key => $field) {
+            $status = $criteria[$key] ? 'present' : ($field['official_absent'] ? 'officially_absent' : 'missing');
+            $displayText = match ($status) {
+                'present' => $field['label'],
+                'officially_absent' => $key === 'email'
+                    ? 'Keine öffentliche E-Mail vorhanden'
+                    : 'Keine offizielle Website vorhanden',
+                default => $field['label'],
+            };
+            $accessibleLabel = match ($status) {
+                'present' => $field['label'].' vorhanden',
+                'officially_absent' => $displayText,
+                default => $field['label'].' fehlt oder ist noch nicht bestätigt',
+            };
+
+            $statuses[$key] = [
+                'key' => $key,
+                'label' => $field['label'],
+                'status' => $status,
+                'display_text' => $displayText,
+                'accessible_label' => $accessibleLabel,
+            ];
+        }
+
+        return $statuses;
     }
 
     /** @param iterable<int, Facility> $facilities @return array{average_score:float, verified_percentage:float, verified_count:int, unverified_count:int, total_facilities:int} */

@@ -534,6 +534,13 @@ class DirectoryPagesTest extends TestCase
             ->assertSee('Datenqualität')
             ->assertSee('Sehr hoch')
             ->assertSee('Quality Score 100 von 100')
+            ->assertSee('Vorhanden')
+            ->assertSee('Telefon')
+            ->assertSee('E-Mail')
+            ->assertSee('Website')
+            ->assertSee('Adresse')
+            ->assertSee('Quelle')
+            ->assertSee('Verifizierung')
             ->assertDontSee('PflegeIndex Qualität')
             ->assertDontSee('Qualität der Informationen');
     }
@@ -547,6 +554,13 @@ class DirectoryPagesTest extends TestCase
             ->assertSee('data-quality-score-unified="10"', false)
             ->assertSee('Unvollständig')
             ->assertSee('Noch nicht vollständig geprüft.')
+            ->assertSee('Fehlt oder noch nicht bestätigt')
+            ->assertSee('Telefon')
+            ->assertSee('E-Mail')
+            ->assertSee('Website')
+            ->assertSee('Adresse')
+            ->assertSee('Quelle')
+            ->assertSee('Verifizierung')
             ->assertDontSee('data-quality-score="', false)
             ->assertDontSee('Qualitätsmerkmalen erfüllt');
     }
@@ -566,6 +580,23 @@ class DirectoryPagesTest extends TestCase
             ->assertSee('Teilweise')
             ->assertDontSee('data-quality-score="', false)
             ->assertDontSee('data-quality-criterion=');
+    }
+
+    public function test_officially_absent_contact_fields_use_neutral_statuses(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update([
+            'official_email_absent' => true,
+            'official_website_absent' => true,
+        ]);
+
+        $this->get(route('facilities.show', [$city, $facility]))
+            ->assertOk()
+            ->assertSee('Nicht vorhanden')
+            ->assertSee('— Keine öffentliche E-Mail vorhanden')
+            ->assertSee('— Keine offizielle Website vorhanden')
+            ->assertDontSee('✕ E-Mail')
+            ->assertDontSee('✕ Website');
     }
 
     public function test_facility_quality_panel_is_accessible_and_follows_mobile_actions(): void
