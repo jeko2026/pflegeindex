@@ -164,8 +164,8 @@ class DirectoryPagesTest extends TestCase
         $response->assertSee('<details class="faq-item">', false);
         $response->assertSee('<summary class="faq-question">', false);
 
-        // 8. Quality widget has aria-label on summary
-        $response->assertSee('<summary aria-label="Erläuterung zur PflegeIndex Qualität">?</summary>', false);
+        // 8. Unified quality widget exposes an accessible progress label
+        $response->assertSee('aria-label="Quality Score"', false);
     }
 
     public function test_facility_structured_data_omits_missing_contact_fields(): void
@@ -515,7 +515,7 @@ class DirectoryPagesTest extends TestCase
             ->assertDontSee($otherFacility->name);
     }
 
-    public function test_facility_quality_panel_calculates_a_normalized_score(): void
+    public function test_facility_page_shows_the_unified_quality_score(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
         $facility->update([
@@ -530,32 +530,28 @@ class DirectoryPagesTest extends TestCase
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('data-quality-score="91"', false)
-            ->assertSee('9 von 10 Qualitätsmerkmalen erfüllt')
-            ->assertSee('data-quality-badge="official"', false)
-            ->assertSee('data-quality-badge="contact"', false)
-            ->assertSee('data-quality-badge="description"', false)
-            ->assertSee('data-quality-badge="location"', false)
-            ->assertSee('data-quality-badge="website"', false)
-            ->assertDontSee('data-quality-criterion="coordinates"', false);
+            ->assertSee('data-quality-score-unified="100"', false)
+            ->assertSee('Datenqualität')
+            ->assertSee('Sehr hoch')
+            ->assertSee('Quality Score 100 von 100')
+            ->assertDontSee('PflegeIndex Qualität')
+            ->assertDontSee('Qualität der Informationen');
     }
 
-    public function test_facility_quality_panel_hides_badges_for_missing_information(): void
+    public function test_unverified_facility_shows_incomplete_unified_quality_score(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('data-quality-score="32"', false)
-            ->assertSee('4 von 10 Qualitätsmerkmalen erfüllt')
-            ->assertSee('data-quality-badge="official"', false)
-            ->assertSee('data-quality-badge="location"', false)
-            ->assertDontSee('data-quality-badge="contact"', false)
-            ->assertDontSee('data-quality-badge="description"', false)
-            ->assertDontSee('data-quality-badge="website"', false);
+            ->assertSee('data-quality-score-unified="10"', false)
+            ->assertSee('Unvollständig')
+            ->assertSee('Noch nicht vollständig geprüft.')
+            ->assertDontSee('data-quality-score="', false)
+            ->assertDontSee('Qualitätsmerkmalen erfüllt');
     }
 
-    public function test_facility_quality_panel_does_not_confirm_invalid_contact_data(): void
+    public function test_unified_quality_score_uses_the_documented_presence_weights(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
         $facility->update([
@@ -566,13 +562,10 @@ class DirectoryPagesTest extends TestCase
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('data-quality-score="27"', false)
-            ->assertDontSee('data-quality-criterion="phone"', false)
-            ->assertDontSee('data-quality-criterion="website"', false)
-            ->assertDontSee('data-quality-criterion="email"', false)
-            ->assertDontSee('data-quality-criterion="errors"', false)
-            ->assertDontSee('data-quality-badge="contact"', false)
-            ->assertDontSee('data-quality-badge="website"', false);
+            ->assertSee('data-quality-score-unified="45"', false)
+            ->assertSee('Teilweise')
+            ->assertDontSee('data-quality-score="', false)
+            ->assertDontSee('data-quality-criterion=');
     }
 
     public function test_facility_quality_panel_is_accessible_and_follows_mobile_actions(): void
@@ -583,20 +576,19 @@ class DirectoryPagesTest extends TestCase
         $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
         $content = $response->getContent();
         $actionsPosition = strpos($content, '<nav class="mobile-contact-actions"');
-        $qualityPosition = strpos($content, '<section class="quality-panel"');
+        $qualityPosition = strpos($content, '<section class="quality-score-panel"');
         $addressPosition = strpos($content, '<p class="detail-address">');
 
         $response
             ->assertSee('role="progressbar"', false)
-            ->assertSee('aria-label="Erläuterung zur PflegeIndex Qualität"', false)
-            ->assertSee('Diese Bewertung beschreibt ausschließlich die Vollständigkeit und Qualität der vorliegenden Informationen. Sie ist keine Bewertung der Einrichtung.')
-            ->assertSee('Stand der Bewertung:');
+            ->assertSee('aria-label="Quality Score"', false)
+            ->assertSee('Noch nicht vollständig geprüft.');
         $this->assertIsInt($actionsPosition);
         $this->assertIsInt($qualityPosition);
         $this->assertIsInt($addressPosition);
         $this->assertLessThan($qualityPosition, $actionsPosition);
         $this->assertLessThan($addressPosition, $qualityPosition);
-        $this->assertSame(1, substr_count($content, '<section class="quality-panel"'));
+        $this->assertSame(1, substr_count($content, '<section class="quality-score-panel"'));
 
         $stylesheet = file_get_contents(public_path('assets/styles.css'));
         $this->assertIsString($stylesheet);
