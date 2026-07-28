@@ -195,6 +195,7 @@
             <div class="detail-heading">
                 <div><span class="type-badge">{{ $facility->type }}</span><span class="source-badge">Amtliche Grunddaten</span></div>
                 <h1>{{ $facility->name }}</h1>
+                <p class="detail-address"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg> {{ $facility->address }}, {{ $facility->postal_code }} {{ $city->name }}</p>
                 @if($hasDirectContact)
                     <nav class="mobile-contact-actions" aria-label="Schnellkontakt">
                         @if($facility->phone)<a href="tel:{{ $facility->phone }}">Anrufen</a>@endif
@@ -202,9 +203,6 @@
                         @if($emailIsValid)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
                     </nav>
                 @endif
-                @include('facilities._quality-score', ['qualityScore' => $qualityScore])
-                <p class="detail-address"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg> {{ $facility->address }}, {{ $facility->postal_code }} {{ $city->name }}</p>
-                <p class="source-explanation">Die amtlichen Grunddaten stammen vom LASV; Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.</p>
             </div>
             <section class="detail-section">
                 <h2>{{ $editorialView ? 'Fährmann Pflege in Angermünde: Leistungen und Wohnangebote' : 'Über diese Einrichtung' }}</h2>
@@ -249,6 +247,9 @@
             </section>
             <section class="detail-section"><h2>Einrichtungsart</h2><div class="check-grid">@foreach($facility->care_types ?? [$facility->type] as $careType)<span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>{{ $careType }}</span>@endforeach</div></section>
             @include('facilities._content')
+            @include('facilities._trust', ['qualityScore' => $qualityScore])
+            @include('facilities._quality-score', ['qualityScore' => $qualityScore])
+            <p class="source-explanation">Die amtlichen Grunddaten stammen vom LASV; Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.</p>
         </div>
         <aside class="contact-card">
             <span class="contact-card__label">Kontakt</span>
@@ -261,18 +262,6 @@
                 @endif
                 @if($emailIsValid)<a class="contact-secondary" href="mailto:{{ $facility->email }}">E-Mail senden</a>@endif
                 @if($displayWebsite)<a class="contact-secondary" href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website öffnen</a>@endif
-                @if($facility->contact_status === 'verified' && $facility->contact_checked_at !== null && filled($facility->contact_source) && (filled($facility->phone) || filled($facility->email) || filled($facility->website)))
-                    <small>
-                        Kontaktdaten geprüft am {{ $facility->contact_checked_at->format('d.m.Y') }}
-                        <br>
-                        Quelle: 
-                        @if(filter_var($facility->contact_source, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//i', $facility->contact_source))
-                            <a href="{{ $facility->contact_source }}" target="_blank" rel="nofollow noopener noreferrer">Website des Anbieters</a>
-                        @else
-                            Website des Anbieters
-                        @endif
-                    </small>
-                @endif
             @else
                 <h2 class="contact-phone contact-phone--pending">Kontakt</h2>
                 <p style="margin-top:10px;margin-bottom:18px;font-size:14px;color:rgba(255,255,255,.82)">Für diese Einrichtung liegen derzeit keine direkten Kontaktdaten vor.</p>

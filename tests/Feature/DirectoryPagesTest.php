@@ -165,7 +165,7 @@ class DirectoryPagesTest extends TestCase
         $response->assertSee('<summary class="faq-question">', false);
 
         // 8. Unified quality widget exposes an accessible progress label
-        $response->assertSee('aria-label="Quality Score"', false);
+        $response->assertSee('aria-label="Bewertung der Datenqualität"', false);
     }
 
     public function test_facility_structured_data_omits_missing_contact_fields(): void
@@ -533,7 +533,8 @@ class DirectoryPagesTest extends TestCase
             ->assertSee('data-quality-score-unified="100"', false)
             ->assertSee('Datenqualität')
             ->assertSee('Sehr hoch')
-            ->assertSee('Quality Score 100 von 100')
+            ->assertSee('Datenqualität 100 von 100')
+            ->assertSee('Details zur Datenqualität')
             ->assertSee('Vorhanden')
             ->assertSee('Telefon')
             ->assertSee('E-Mail')
@@ -542,7 +543,8 @@ class DirectoryPagesTest extends TestCase
             ->assertSee('Quelle')
             ->assertSee('Verifizierung')
             ->assertDontSee('PflegeIndex Qualität')
-            ->assertDontSee('Qualität der Informationen');
+            ->assertDontSee('Qualität der Informationen')
+            ->assertDontSee('Quality Score');
     }
 
     public function test_unverified_facility_shows_incomplete_unified_quality_score(): void
@@ -552,6 +554,7 @@ class DirectoryPagesTest extends TestCase
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
             ->assertSee('data-quality-score-unified="10"', false)
+            ->assertSee('Details zur Datenqualität')
             ->assertSee('Unvollständig')
             ->assertSee('Noch nicht vollständig geprüft.')
             ->assertSee('Fehlt oder noch nicht bestätigt')
@@ -607,18 +610,18 @@ class DirectoryPagesTest extends TestCase
         $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
         $content = $response->getContent();
         $actionsPosition = strpos($content, '<nav class="mobile-contact-actions"');
-        $qualityPosition = strpos($content, '<section class="quality-score-panel"');
+        $qualityPosition = strpos($content, '<details class="quality-details"');
         $addressPosition = strpos($content, '<p class="detail-address">');
 
         $response
             ->assertSee('role="progressbar"', false)
-            ->assertSee('aria-label="Quality Score"', false)
+            ->assertSee('Details zur Datenqualität')
             ->assertSee('Noch nicht vollständig geprüft.');
         $this->assertIsInt($actionsPosition);
         $this->assertIsInt($qualityPosition);
         $this->assertIsInt($addressPosition);
         $this->assertLessThan($qualityPosition, $actionsPosition);
-        $this->assertLessThan($addressPosition, $qualityPosition);
+        $this->assertLessThan($qualityPosition, $addressPosition);
         $this->assertSame(1, substr_count($content, '<section class="quality-score-panel"'));
 
         $stylesheet = file_get_contents(public_path('assets/styles.css'));
@@ -685,7 +688,7 @@ class DirectoryPagesTest extends TestCase
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('Kontaktdaten geprüft am 20.07.2026')
+            ->assertSee('Zuletzt geprüft am 20.07.2026')
             ->assertSee('Quelle:')
             ->assertSee('Website des Anbieters')
             ->assertSee('href="https://example.com/impressum"', false)
@@ -759,7 +762,7 @@ class DirectoryPagesTest extends TestCase
             ->assertDontSee('Website des Anbieters');
     }
 
-    public function test_trust_layer_shows_date_without_link_when_source_is_invalid_url(): void
+    public function test_trust_layer_does_not_link_an_invalid_source_url(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
         $facility->update([
@@ -771,9 +774,9 @@ class DirectoryPagesTest extends TestCase
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('Kontaktdaten geprüft am 20.07.2026')
-            ->assertSee('Quelle:')
-            ->assertSee('Website des Anbieters')
+            ->assertSee('Zuletzt geprüft am 20.07.2026')
+            ->assertDontSee('Quelle:')
+            ->assertDontSee('Website des Anbieters')
             ->assertDontSee('href="invalid-url"', false);
     }
 

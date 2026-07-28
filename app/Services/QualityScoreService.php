@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 final class QualityScoreService
 {
-    /** @return array{score:int, quality_label:string, quality_color:string, progress_percentage:int, verified:bool, review_documented:bool, verified_at:?string, source:?string, criteria:array<string,bool>, field_statuses:array<string, array{key:string, label:string, status:string, display_text:string, accessible_label:string}>} */
+    /** @return array{score:int, quality_label:string, quality_color:string, progress_percentage:int, verified:bool, review_documented:bool, verified_at:?string, source:?string, trust:array{status:string, label:string, verified_at:?string, source:?string}, criteria:array<string,bool>, field_statuses:array<string, array{key:string, label:string, status:string, display_text:string, accessible_label:string}>} */
     public function evaluate(Facility $facility): array
     {
         $criteria = [
@@ -40,8 +40,32 @@ final class QualityScoreService
             'review_documented' => $reviewDocumented,
             'verified_at' => $reviewDocumented ? $facility->contact_checked_at?->format('d.m.Y') : null,
             'source' => $reviewDocumented ? (string) $facility->contact_source : null,
+            'trust' => $this->trustSummary($facility, $reviewDocumented),
             'criteria' => $criteria,
             'field_statuses' => $this->fieldStatuses($facility, $criteria),
+        ];
+    }
+
+    /** @return array{status:string, label:string, verified_at:?string, source:?string} */
+    public function trustSummary(Facility $facility, ?bool $reviewDocumented = null): array
+    {
+        $reviewDocumented ??= $this->evaluate($facility)['review_documented'];
+        $hasContact = filled($facility->phone) || filled($facility->email) || filled($facility->website);
+        $status = $reviewDocumented
+            ? 'verified'
+            : ($facility->contact_status === 'verified' && $hasContact ? 'partial' : 'unverified');
+
+        return [
+            'status' => $status,
+            'label' => match ($status) {
+                'verified' => 'Kontaktdaten geprüft',
+                'partial' => 'Kontaktdaten teilweise geprüft',
+                default => 'Kontaktdaten noch nicht vollständig geprüft',
+            },
+            'verified_at' => $facility->contact_checked_at?->format('d.m.Y'),
+            'source' => $status !== 'unverified' && HttpUrl::isValid($facility->contact_source)
+                ? (string) $facility->contact_source
+                : null,
         ];
     }
 

@@ -222,6 +222,16 @@ img, svg { display: block; }
 .quality-score-panel__bar-fill--orange { background:#c56a2f; }
 .quality-score-panel__bar-fill--red { background:#b64c4c; }
 .quality-score-panel__meta { margin:10px 0 0; color:#5b6c61; font-size:12px; overflow-wrap:anywhere; }
+.quality-details { margin-top:16px; border-top:1px solid var(--line); }
+.quality-details summary { padding:14px 0 3px; color:var(--navy); cursor:pointer; font-size:14px; font-weight:750; }
+.quality-details summary:focus-visible { outline:3px solid rgba(22,58,99,.28); outline-offset:3px; border-radius:4px; }
+.quality-details[open] summary { margin-bottom:2px; }
+.quality-details .quality-score-panel { margin-top:10px; }
+.quality-score-panel__explanation { margin:12px 0 0; color:#5b6c61; font-size:12px; line-height:1.5; }
+.facility-trust { margin-top:24px; padding:15px 17px; border-left:4px solid #477c56; border-radius:10px; background:#f7faf8; }
+.facility-trust h2 { margin:0; color:var(--navy-dark); font-size:16px; }
+.facility-trust p { margin:5px 0 0; color:#4e6156; font-size:13px; line-height:1.5; }
+.facility-trust a { color:var(--navy); text-underline-offset:2px; }
 .quality-score-statuses { margin-top:16px; display:grid; gap:12px; }
 .quality-score-statuses__group h3 { margin:0 0 5px; color:var(--navy-dark); font-size:13px; }
 .quality-score-statuses__group ul { margin:0; padding:0; display:grid; gap:4px; list-style:none; }
