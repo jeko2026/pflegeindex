@@ -10,7 +10,7 @@ final class DataQualityDashboardService
 {
     public function __construct(private readonly QualityScoreService $qualityScores) {}
 
-    /** @return array{overview:array<string,int|float>, cities:list<array<string,mixed>>, facilities:list<array<string,mixed>>, cities_filter:Collection<int,City>, filters:array<string,mixed>} */
+    /** @return array{overview:array<string,int|float>, open_tasks:list<array<string,mixed>>, next_task:?array<string,mixed>, cities:list<array<string,mixed>>, facilities:list<array<string,mixed>>, cities_filter:Collection<int,City>, filters:array<string,mixed>} */
     public function dashboard(array $filters = []): array
     {
         $filters = $this->normalizeFilters($filters);
@@ -44,6 +44,12 @@ final class DataQualityDashboardService
                             'city_name' => $cityNames[$cityId] ?? '',
                             'score' => $score['score'],
                             'status' => $facility->contact_status,
+                            'status_label' => match ($facility->contact_status) {
+                                'verified' => 'Geprüft',
+                                'pending' => 'In Prüfung',
+                                'not_found' => 'Nicht gefunden',
+                                default => 'Noch offen',
+                            },
                             'missing' => $this->missingLabels($criteria),
                         ];
                     }
@@ -60,16 +66,37 @@ final class DataQualityDashboardService
             $city['verified_count'] = (int) $city['verified_count'];
             $city['unverified_count'] = $city['total_facilities'] - $city['verified_count'];
             $city['verified_percentage'] = round(($city['verified_count'] / $city['total_facilities']) * 100, 2);
+            $city['priority'] = $city['verified_percentage'] < 25
+                ? 'Hoch'
+                : ($city['verified_percentage'] < 60 ? 'Mittel' : 'Niedrig');
             return $city;
-        })->sortBy([['average_score', 'asc'], ['total_facilities', 'desc'], ['name', 'asc']])->take(20)->values()->all();
+        })->sortBy([['verified_percentage', 'asc'], ['unverified_count', 'desc'], ['name', 'asc']])->take(20)->values()->all();
         usort($rows, fn (array $a, array $b): int => [$a['score'], mb_strtolower($a['name']), $a['id']] <=> [$b['score'], mb_strtolower($b['name']), $b['id']]);
 
-        return ['overview' => $overview, 'cities' => $cityRows, 'facilities' => array_slice($rows, 0, 50), 'cities_filter' => $cityNames->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->sortBy('name')->values(), 'filters' => $filters];
+        $openTasks = [
+            ['key' => 'phone', 'label' => 'Telefon prüfen', 'action' => 'Telefon-Prüfung starten', 'count' => $overview['without_phone'], 'description' => 'Einrichtungen ohne Telefonnummer'],
+            ['key' => 'email', 'label' => 'E-Mail prüfen', 'action' => 'E-Mail-Prüfung starten', 'count' => $overview['without_email'], 'description' => 'Einrichtungen ohne E-Mail-Adresse'],
+            ['key' => 'website', 'label' => 'Website prüfen', 'action' => 'Website-Prüfung starten', 'count' => $overview['without_website'], 'description' => 'Einrichtungen ohne Website'],
+        ];
+        $nextTask = collect($openTasks)->sortByDesc('count')->first();
+        if (($nextTask['count'] ?? 0) === 0) {
+            $nextTask = null;
+        }
+
+        return [
+            'overview' => $overview,
+            'open_tasks' => $openTasks,
+            'next_task' => $nextTask,
+            'cities' => $cityRows,
+            'facilities' => array_slice($rows, 0, 50),
+            'cities_filter' => $cityNames->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->sortBy('name')->values(),
+            'filters' => $filters,
+        ];
     }
 
     private function normalizeFilters(array $filters): array
     {
-        $status = in_array($filters['status'] ?? '', ['verified', 'pending', 'not_found', ''], true) ? ($filters['status'] ?? '') : '';
+        $status = in_array($filters['status'] ?? '', ['verified', 'unverified', 'pending', 'not_found', ''], true) ? ($filters['status'] ?? '') : '';
         $city = is_numeric($filters['city'] ?? null) ? (int) $filters['city'] : null;
         $max = is_numeric($filters['max_score'] ?? null) ? max(0, min(100, (int) $filters['max_score'])) : null;
         return ['city' => $city, 'status' => $status, 'missing_phone' => ($filters['missing_phone'] ?? '') === '1', 'missing_email' => ($filters['missing_email'] ?? '') === '1', 'missing_website' => ($filters['missing_website'] ?? '') === '1', 'max_score' => $max];

@@ -7,9 +7,17 @@
         <div class="admin-title"><div><h1>Einrichtungen</h1><p>{{ number_format($facilities->total(), 0, ',', '.') }} passende Einträge.</p></div></div>
         @if(session('status'))<div class="admin-alert">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="admin-errors"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        @if($activeFilters !== [])
+            <div class="admin-active-filters" aria-label="Aktive Filter">
+                <strong>Aktive Filter:</strong>
+                @foreach($activeFilters as $activeFilter)<span>{{ $activeFilter }}</span>@endforeach
+                <a href="{{ route('admin.facilities.index') }}">Filter zurücksetzen</a>
+            </div>
+        @endif
         <form class="admin-filter admin-filter--facilities" method="get" action="{{ route('admin.facilities.index') }}">
+            @if($city !== null)<input type="hidden" name="city" value="{{ $city }}">@endif
             <input name="q" type="search" value="{{ $query }}" placeholder="Name, Stadt oder PLZ" aria-label="Einrichtung suchen">
-            <select name="status" aria-label="Kontaktstatus"><option value="">Alle Status</option><option value="verified" @selected($status === 'verified')>Geprüft</option><option value="pending" @selected($status === 'pending')>In Prüfung</option><option value="not_found" @selected($status === 'not_found')>Nicht gefunden</option><option value="missing" @selected($status === 'missing')>Noch offen</option></select>
+            <select name="status" aria-label="Kontaktstatus"><option value="">Alle Status</option><option value="verified" @selected($status === 'verified')>Geprüft</option><option value="unverified" @selected($status === 'unverified')>Offen</option><option value="pending" @selected($status === 'pending')>In Prüfung</option><option value="not_found" @selected($status === 'not_found')>Nicht gefunden</option><option value="missing" @selected($status === 'missing')>Noch offen</option></select>
             @php($activeContactFilters = collect([$phone, $email, $website, $source])->filter()->count())
             <details class="admin-contact-filter" @if($activeContactFilters) open @endif>
                 <summary>Kontaktdaten @if($activeContactFilters)<span>{{ $activeContactFilters }} aktiv</span>@endif</summary>

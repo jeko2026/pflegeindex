@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\City;
 use App\Models\ContactSuggestion;
 use App\Models\Facility;
 use App\Rules\AbsoluteHttpUrl;
@@ -27,6 +28,18 @@ class FacilityController extends Controller
         $email = trim((string) $request->query('email', ''));
         $website = trim((string) $request->query('website', ''));
         $source = trim((string) $request->query('source', ''));
+        $city = is_numeric($request->query('city')) ? (int) $request->query('city') : null;
+        $selectedCity = $city !== null ? City::query()->find($city) : null;
+        $missing = trim((string) $request->query('missing', ''));
+        if ($missing === 'phone') {
+            $phone = 'without';
+        } elseif ($missing === 'email') {
+            $email = 'without';
+        } elseif ($missing === 'website') {
+            $website = 'without';
+        } else {
+            $missing = '';
+        }
 
         $facilities = Facility::query()
             ->with('city')
@@ -38,7 +51,9 @@ class FacilityController extends Controller
                         ->orWhereHas('city', fn (Builder $city) => $city->where('name', 'like', $like));
                 });
             })
+            ->when($city !== null, fn (Builder $builder) => $builder->where('city_id', $city))
             ->when($status === 'missing', fn (Builder $builder) => $builder->whereNull('contact_status'))
+            ->when($status === 'unverified', fn (Builder $builder) => $builder->where(fn (Builder $open) => $open->whereNull('contact_status')->orWhere('contact_status', '!=', 'verified')))
             ->when(in_array($status, ['verified', 'pending', 'not_found'], true), fn (Builder $builder) => $builder->where('contact_status', $status))
             ->when($phone === 'with', fn (Builder $builder) => $builder->whereNotNull('phone')->where('phone', '!=', ''))
             ->when($phone === 'without', fn (Builder $builder) => $builder->where(fn (Builder $missing) => $missing->whereNull('phone')->orWhere('phone', '')))
@@ -56,6 +71,28 @@ class FacilityController extends Controller
 
         $hasDraftsOnPage = $facilities->getCollection()
             ->contains(static fn (Facility $facility): bool => filled($facility->description_draft));
+        $activeFilters = [];
+        if ($selectedCity) {
+            $activeFilters[] = 'Stadt: '.$selectedCity->name;
+        }
+        if ($status === 'unverified') {
+            $activeFilters[] = 'Status: Offen';
+        } elseif ($status === 'verified') {
+            $activeFilters[] = 'Status: Geprüft';
+        } elseif ($status === 'pending') {
+            $activeFilters[] = 'Status: In Prüfung';
+        } elseif ($status === 'not_found') {
+            $activeFilters[] = 'Status: Nicht gefunden';
+        }
+        if ($phone === 'without') {
+            $activeFilters[] = 'Fehlende Angabe: Telefon';
+        }
+        if ($email === 'without') {
+            $activeFilters[] = 'Fehlende Angabe: E-Mail';
+        }
+        if ($website === 'without') {
+            $activeFilters[] = 'Fehlende Angabe: Website';
+        }
 
         return view('admin.facilities.index', compact(
             'facilities',
@@ -66,6 +103,10 @@ class FacilityController extends Controller
             'email',
             'website',
             'source',
+            'missing',
+            'city',
+            'selectedCity',
+            'activeFilters',
             'hasDraftsOnPage',
         ));
     }

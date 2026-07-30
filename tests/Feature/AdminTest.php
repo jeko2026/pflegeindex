@@ -373,6 +373,57 @@ class AdminTest extends TestCase
             ->assertDontSee('Vollständiger Kontakt');
     }
 
+    public function test_facility_list_supports_dashboard_missing_and_unverified_filters(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $open = $this->createFacility();
+        $open->update(['name' => 'Offene Einrichtung', 'contact_status' => null, 'email' => null]);
+        $verified = $this->createFacility();
+        $verified->update(['name' => 'Geprüfte Einrichtung', 'contact_status' => 'verified']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index', ['missing' => 'email']))
+            ->assertOk()
+            ->assertSee('Offene Einrichtung')
+            ->assertDontSee('Geprüfte Einrichtung');
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index', ['status' => 'unverified']))
+            ->assertOk()
+            ->assertSee('Offene Einrichtung')
+            ->assertDontSee('Geprüfte Einrichtung');
+    }
+
+    public function test_facility_list_filters_by_city_id_and_combines_with_missing_filter(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $potsdam = $this->createFacility();
+        $potsdam->update(['name' => 'Potsdam ohne E-Mail', 'email' => null]);
+        $cottbusCity = City::create([
+            'name' => 'Cottbus',
+            'slug' => 'cottbus',
+            'state' => 'Brandenburg',
+            'state_slug' => 'brandenburg',
+        ]);
+        $cottbus = $potsdam->replicate();
+        $cottbus->fill([
+            'city_id' => $cottbusCity->id,
+            'source_id' => 'cottbus-complete',
+            'name' => 'Cottbus vollständig',
+            'slug' => 'cottbus-vollstaendig',
+            'email' => 'kontakt@example.de',
+        ])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index', ['city' => $potsdam->city_id, 'missing' => 'email']))
+            ->assertOk()
+            ->assertSee('Potsdam ohne E-Mail')
+            ->assertSee('Stadt: Potsdam')
+            ->assertSee('Fehlende Angabe: E-Mail')
+            ->assertSee('Filter zurücksetzen')
+            ->assertDontSee('Cottbus vollständig');
+    }
+
     public function test_official_website_absent_can_be_saved_without_website(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
