@@ -74,20 +74,172 @@
             </tbody></table></div>
         </section>
 
-        <section class="admin-panel">
-            <h2>Einrichtungen mit Verbesserungsbedarf</h2>
+        @php
+            $activeQuery = array_filter([
+                'task' => $filters['task'],
+                'city' => $filters['city'],
+                'status' => $filters['status'],
+                'max_score' => $filters['max_score'],
+                'sort' => $filters['sort'],
+                'direction' => $filters['direction'],
+            ], fn ($value) => $value !== null && $value !== '' && $value !== false);
+            $withoutCityQuery = $activeQuery;
+            unset($withoutCityQuery['city']);
+            $qualityDirection = $filters['sort'] === 'quality_score' && $filters['direction'] === 'asc' ? 'desc' : 'asc';
+            $cityDirection = $filters['sort'] === 'city' && $filters['direction'] === 'asc' ? 'desc' : 'asc';
+            $filterChips = [];
+            if ($active_city_name) {
+                $query = $activeQuery;
+                unset($query['city']);
+                $filterChips[] = ['label' => 'Stadt: '.$active_city_name, 'query' => $query];
+            }
+            if ($filters['status'] !== '') {
+                $statusLabel = match ($filters['status']) {
+                    'verified' => 'Geprüft',
+                    'unverified' => 'Offen',
+                    'pending' => 'In Prüfung',
+                    'not_found' => 'Nicht gefunden',
+                    default => $filters['status'],
+                };
+                $query = $activeQuery;
+                unset($query['status']);
+                $filterChips[] = ['label' => 'Status: '.$statusLabel, 'query' => $query];
+            }
+            if ($filters['max_score'] !== null) {
+                $query = $activeQuery;
+                unset($query['max_score']);
+                $filterChips[] = ['label' => 'Score ≤ '.$filters['max_score'].' %', 'query' => $query];
+            }
+            $sortFilters = $activeQuery;
+            unset($sortFilters['sort'], $sortFilters['direction']);
+        @endphp
+
+        <section class="admin-panel" aria-labelledby="facility-queue-title">
+            <div class="admin-queue-heading">
+                <h2 id="facility-queue-title">
+                    Einrichtungen prüfen
+                    @if ($active_city_name)
+                        — {{ $active_city_name }}
+                    @endif
+                </h2>
+                @if ($active_city_name)
+                    <a href="{{ route('admin.data-quality', $withoutCityQuery) }}">← Alle Städte anzeigen</a>
+                @endif
+            </div>
             <form method="get" class="admin-filter admin-filter--quality">
-                <select name="city" aria-label="Stadt"><option value="">Alle Städte</option>@foreach($cities_filter as $city)<option value="{{ $city['id'] }}" @selected($filters['city'] === (int) $city['id'])>{{ $city['name'] }}</option>@endforeach</select>
-                <select name="status" aria-label="Kontaktstatus"><option value="">Alle Status</option><option value="verified" @selected($filters['status'] === 'verified')>Geprüft</option><option value="unverified" @selected($filters['status'] === 'unverified')>Offen</option><option value="pending" @selected($filters['status'] === 'pending')>In Prüfung</option><option value="not_found" @selected($filters['status'] === 'not_found')>Nicht gefunden</option></select>
-                <input type="number" name="max_score" min="0" max="100" placeholder="Max. Datenqualität" value="{{ $filters['max_score'] ?? '' }}">
-                <label><input type="checkbox" name="missing_phone" value="1" @checked($filters['missing_phone'])> ohne Telefon</label>
-                <label><input type="checkbox" name="missing_email" value="1" @checked($filters['missing_email'])> ohne E-Mail</label>
-                <label><input type="checkbox" name="missing_website" value="1" @checked($filters['missing_website'])> ohne Website</label>
-                <button class="primary-button" type="submit">Filtern</button>
+                <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
+                <input type="hidden" name="direction" value="{{ $filters['direction'] }}">
+                <label class="admin-task-filter">
+                    <span>Aktive Aufgabe</span>
+                    <select name="task">
+                        <option value="open" @selected($filters['task'] === 'open')>Alle offenen Einrichtungen</option>
+                        <option value="missing_phone" @selected($filters['task'] === 'missing_phone')>Ohne Telefon</option>
+                        <option value="missing_email" @selected($filters['task'] === 'missing_email')>Ohne E-Mail</option>
+                        <option value="missing_website" @selected($filters['task'] === 'missing_website')>Ohne Website</option>
+                    </select>
+                </label>
+                <div class="admin-filter-toolbar">
+                    <fieldset class="admin-additional-filter">
+                        <legend>Weitere Filter</legend>
+                        <div class="admin-quality-filter__fields">
+                            <label class="admin-quality-filter__field">
+                                <span>Stadt</span>
+                                <select name="city">
+                                    <option value="">Alle Städte</option>
+                                    @foreach ($cities_filter as $city)
+                                        <option value="{{ $city['id'] }}" @selected($filters['city'] === (int) $city['id'])>{{ $city['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label class="admin-quality-filter__field"><span>Status</span><select name="status"><option value="">Alle Status</option><option value="verified" @selected($filters['status'] === 'verified')>Geprüft</option><option value="unverified" @selected($filters['status'] === 'unverified')>Offen</option><option value="pending" @selected($filters['status'] === 'pending')>In Prüfung</option><option value="not_found" @selected($filters['status'] === 'not_found')>Nicht gefunden</option></select></label>
+                            <label class="admin-quality-filter__field"><span>Quality Score bis (%)</span><input type="number" name="max_score" min="0" max="100" placeholder="z. B. 30" value="{{ $filters['max_score'] ?? '' }}"></label>
+                        </div>
+                    </fieldset>
+                    <div class="admin-quality-filter__actions">
+                        <button class="primary-button" type="submit">Ergebnisse anzeigen</button>
+                        <a class="admin-secondary-button" href="{{ route('admin.data-quality') }}">Filter zurücksetzen</a>
+                    </div>
+                </div>
             </form>
-            <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Einrichtung</th><th>Stadt</th><th>Datenqualität</th><th>Kontaktstatus</th><th>Fehlende Daten</th><th>Aktion</th></tr></thead><tbody>
+            <div class="admin-queue-context">
+                <p class="admin-filter-result">
+                    @if($filtered_count === 0)
+                        <strong>0</strong> Einrichtungen gefunden
+                    @else
+                        <strong>{{ number_format($displayed_count, 0, ',', '.') }}</strong> von <strong>{{ number_format($filtered_count, 0, ',', '.') }}</strong> Einrichtungen angezeigt
+                    @endif
+                </p>
+                @if($filterChips !== [])
+                    <div class="admin-filter-chips" aria-label="Aktive weitere Filter">
+                        @foreach($filterChips as $chip)
+                            <a href="{{ route('admin.data-quality', $chip['query']) }}" aria-label="Filter {{ $chip['label'] }} entfernen">{{ $chip['label'] }} <span aria-hidden="true">×</span></a>
+                        @endforeach
+                    </div>
+                @endif
+                <form class="admin-sort-select" method="get">
+                    @foreach($sortFilters as $name => $value)
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endforeach
+                    <label class="sr-only" for="queue-sort">Sortierung</label>
+                    <select id="queue-sort" name="sort" onchange="this.form.submit()">
+                        <option value="quality_score" @selected($filters['sort'] === 'quality_score' && $filters['direction'] === 'asc')>Niedrigster Quality Score zuerst</option>
+                        <option value="quality_score_desc" @selected($filters['sort'] === 'quality_score' && $filters['direction'] === 'desc')>Höchster Quality Score zuerst</option>
+                        <option value="city" @selected($filters['sort'] === 'city' && $filters['direction'] === 'asc')>Stadt (A–Z)</option>
+                        <option value="city_desc" @selected($filters['sort'] === 'city' && $filters['direction'] === 'desc')>Stadt (Z–A)</option>
+                        <option value="updated_at" @selected($filters['sort'] === 'updated_at')>Zuletzt aktualisiert</option>
+                    </select>
+                    <noscript><button type="submit">Sortieren</button></noscript>
+                </form>
+            </div>
+            <div class="admin-table-wrap"><table class="admin-table"><thead><tr>
+                <th>Einrichtung</th>
+                <th aria-sort="{{ $filters['sort'] === 'city' ? ($filters['direction'] === 'asc' ? 'ascending' : 'descending') : 'none' }}">
+                    <a class="admin-sort-link" href="{{ route('admin.data-quality', array_merge($activeQuery, ['sort' => 'city', 'direction' => $cityDirection])) }}" aria-label="Nach Stadt {{ $cityDirection === 'asc' ? 'aufsteigend' : 'absteigend' }} sortieren">
+                        Stadt
+                        @if ($filters['sort'] === 'city')
+                            <span aria-hidden="true">{{ $filters['direction'] === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </a>
+                </th>
+                <th aria-sort="{{ $filters['sort'] === 'quality_score' ? ($filters['direction'] === 'asc' ? 'ascending' : 'descending') : 'none' }}">
+                    <a class="admin-sort-link" href="{{ route('admin.data-quality', array_merge($activeQuery, ['sort' => 'quality_score', 'direction' => $qualityDirection])) }}" aria-label="Nach Datenqualität {{ $qualityDirection === 'asc' ? 'aufsteigend' : 'absteigend' }} sortieren">
+                        Datenqualität
+                        @if ($filters['sort'] === 'quality_score')
+                            <span aria-hidden="true">{{ $filters['direction'] === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </a>
+                </th>
+                <th>Kontaktstatus</th><th>Fehlende Daten</th><th>Aktion</th>
+            </tr></thead><tbody>
                 @forelse($facilities as $facility)
-                    <tr><td>{{ $facility['name'] }}</td><td>{{ $facility['city_name'] }}</td><td>{{ $facility['score'] }} %</td><td><span class="status-pill status-pill--{{ $facility['status'] ?: 'missing' }}">{{ $facility['status_label'] }}</span></td><td>@if($facility['missing'] === []) – @else {{ implode(', ', $facility['missing']) }} @endif</td><td><a href="{{ route('admin.facilities.edit', $facility['id']) }}">Bearbeiten</a></td></tr>
+                    <tr>
+                        <td>{{ $facility['name'] }}</td>
+                        <td>{{ $facility['city_name'] }}</td>
+                        <td><x-admin.quality-score :score="$facility['score']" /></td>
+                        <td><span class="status-pill status-pill--{{ $facility['status'] ?: 'missing' }}">{{ $facility['status_label'] }}</span></td>
+                        <td>
+                            @if($facility['missing'] === [])
+                                –
+                            @else
+                                <div class="admin-missing-data">
+                                    @foreach(array_slice($facility['missing'], 0, 3) as $missing)
+                                        <span class="admin-missing-chip admin-missing-chip--{{ $missing['key'] }}">{{ $missing['label'] }}</span>
+                                    @endforeach
+                                    @if(count($facility['missing']) > 3)
+                                        <details class="admin-missing-more">
+                                            <summary>+{{ count($facility['missing']) - 3 }} weitere</summary>
+                                            <div>
+                                                @foreach(array_slice($facility['missing'], 3) as $missing)
+                                                    <span class="admin-missing-chip admin-missing-chip--{{ $missing['key'] }}">{{ $missing['label'] }}</span>
+                                                @endforeach
+                                            </div>
+                                        </details>
+                                    @endif
+                                </div>
+                            @endif
+                        </td>
+                        <td><a class="admin-table-action" href="{{ route('admin.facilities.edit', $facility['id']) }}">Prüfen →</a></td>
+                    </tr>
                 @empty
                     <tr><td colspan="6">Keine Einrichtungen entsprechen den ausgewählten Filtern.</td></tr>
                 @endforelse

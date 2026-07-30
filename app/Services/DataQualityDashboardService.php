@@ -10,7 +10,7 @@ final class DataQualityDashboardService
 {
     public function __construct(private readonly QualityScoreService $qualityScores) {}
 
-    /** @return array{overview:array<string,int|float>, open_tasks:list<array<string,mixed>>, next_task:?array<string,mixed>, cities:list<array<string,mixed>>, facilities:list<array<string,mixed>>, cities_filter:Collection<int,City>, filters:array<string,mixed>} */
+    /** @return array{overview:array<string,int|float>, open_tasks:list<array<string,mixed>>, next_task:?array<string,mixed>, cities:list<array<string,mixed>>, facilities:list<array<string,mixed>>, filtered_count:int, displayed_count:int, active_city_name:?string, cities_filter:Collection<int,City>, filters:array<string,mixed>} */
     public function dashboard(array $filters = []): array
     {
         $filters = $this->normalizeFilters($filters);
@@ -20,7 +20,7 @@ final class DataQualityDashboardService
         $overview = ['total_facilities' => 0, 'verified_count' => 0, 'unverified_count' => 0, 'verified_percentage' => 0.0, 'average_score' => 0.0, 'without_phone' => 0, 'without_email' => 0, 'without_website' => 0];
 
         Facility::query()
-            ->select(['id', 'city_id', 'name', 'phone', 'email', 'website', 'address', 'postal_code', 'contact_source', 'contact_status', 'contact_checked_at'])
+            ->select(['id', 'city_id', 'name', 'phone', 'email', 'website', 'address', 'postal_code', 'contact_source', 'contact_status', 'contact_checked_at', 'updated_at'])
             ->orderBy('id')
             ->chunkById(500, function (Collection $facilities) use (&$cities, &$rows, &$overview, $cityNames, $filters): void {
                 foreach ($facilities as $facility) {
@@ -43,6 +43,7 @@ final class DataQualityDashboardService
                             'name' => $facility->name,
                             'city_name' => $cityNames[$cityId] ?? '',
                             'score' => $score['score'],
+                            'updated_at' => $facility->updated_at?->getTimestamp() ?? 0,
                             'status' => $facility->contact_status,
                             'status_label' => match ($facility->contact_status) {
                                 'verified' => 'Geprüft',
@@ -71,7 +72,9 @@ final class DataQualityDashboardService
                 : ($city['verified_percentage'] < 60 ? 'Mittel' : 'Niedrig');
             return $city;
         })->sortBy([['verified_percentage', 'asc'], ['unverified_count', 'desc'], ['name', 'asc']])->take(20)->values()->all();
-        usort($rows, fn (array $a, array $b): int => [$a['score'], mb_strtolower($a['name']), $a['id']] <=> [$b['score'], mb_strtolower($b['name']), $b['id']]);
+        $this->sortRows($rows, $filters);
+        $filteredCount = count($rows);
+        $displayedFacilities = array_slice($rows, 0, 50);
 
         $openTasks = [
             ['key' => 'phone', 'label' => 'Telefon prüfen', 'action' => 'Telefon-Prüfung starten', 'count' => $overview['without_phone'], 'description' => 'Einrichtungen ohne Telefonnummer'],
@@ -88,7 +91,10 @@ final class DataQualityDashboardService
             'open_tasks' => $openTasks,
             'next_task' => $nextTask,
             'cities' => $cityRows,
-            'facilities' => array_slice($rows, 0, 50),
+            'facilities' => $displayedFacilities,
+            'filtered_count' => $filteredCount,
+            'displayed_count' => count($displayedFacilities),
+            'active_city_name' => $filters['city'] !== null ? ($cityNames[$filters['city']] ?? null) : null,
             'cities_filter' => $cityNames->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->sortBy('name')->values(),
             'filters' => $filters,
         ];
@@ -99,21 +105,82 @@ final class DataQualityDashboardService
         $status = in_array($filters['status'] ?? '', ['verified', 'unverified', 'pending', 'not_found', ''], true) ? ($filters['status'] ?? '') : '';
         $city = is_numeric($filters['city'] ?? null) ? (int) $filters['city'] : null;
         $max = is_numeric($filters['max_score'] ?? null) ? max(0, min(100, (int) $filters['max_score'])) : null;
-        return ['city' => $city, 'status' => $status, 'missing_phone' => ($filters['missing_phone'] ?? '') === '1', 'missing_email' => ($filters['missing_email'] ?? '') === '1', 'missing_website' => ($filters['missing_website'] ?? '') === '1', 'max_score' => $max];
+        [$sort, $direction] = match ($filters['sort'] ?? '') {
+            'quality_score_desc' => ['quality_score', 'desc'],
+            'city_desc' => ['city', 'desc'],
+            'updated_at' => ['updated_at', 'desc'],
+            default => [
+                in_array($filters['sort'] ?? '', ['quality_score', 'city'], true) ? $filters['sort'] : 'quality_score',
+                in_array($filters['direction'] ?? '', ['asc', 'desc'], true) ? $filters['direction'] : 'asc',
+            ],
+        };
+        $task = in_array($filters['task'] ?? '', ['open', 'missing_phone', 'missing_email', 'missing_website'], true)
+            ? $filters['task']
+            : $this->legacyTask($filters);
+
+        return ['task' => $task, 'city' => $city, 'status' => $status, 'max_score' => $max, 'sort' => $sort, 'direction' => $direction];
+    }
+
+    private function legacyTask(array $filters): string
+    {
+        foreach (['missing_phone', 'missing_email', 'missing_website'] as $legacyTask) {
+            if (($filters[$legacyTask] ?? '') === '1') {
+                return $legacyTask;
+            }
+        }
+
+        return 'open';
+    }
+
+    /** @param list<array<string,mixed>> $rows */
+    private function sortRows(array &$rows, array $filters): void
+    {
+        $direction = $filters['direction'] === 'desc' ? -1 : 1;
+
+        usort($rows, function (array $left, array $right) use ($filters, $direction): int {
+            $primary = match ($filters['sort']) {
+                'city' => mb_strtolower((string) $left['city_name']) <=> mb_strtolower((string) $right['city_name']),
+                'updated_at' => $left['updated_at'] <=> $right['updated_at'],
+                default => $left['score'] <=> $right['score'],
+            };
+
+            if ($primary !== 0) {
+                return $primary * $direction;
+            }
+
+            return [mb_strtolower($left['name']), $left['id']] <=> [mb_strtolower($right['name']), $right['id']];
+        });
     }
 
     private function matches(Facility $facility, array $score, array $filters): bool
     {
-        return ($filters['city'] === null || (int) $facility->city_id === $filters['city'])
-            && ($filters['status'] === '' || $facility->contact_status === $filters['status'])
-            && (! $filters['missing_phone'] || ! $score['criteria']['phone'])
-            && (! $filters['missing_email'] || ! $score['criteria']['email'])
-            && (! $filters['missing_website'] || ! $score['criteria']['website'])
+        $isOpen = $facility->contact_status === null || $facility->contact_status === 'unverified';
+        $matchesTask = match ($filters['task']) {
+            'missing_phone' => ! $score['criteria']['phone'],
+            'missing_email' => ! $score['criteria']['email'],
+            'missing_website' => ! $score['criteria']['website'],
+            default => $isOpen,
+        };
+        $matchesStatus = match ($filters['status']) {
+            'unverified' => $isOpen,
+            '' => true,
+            default => $facility->contact_status === $filters['status'],
+        };
+
+        return $matchesTask
+            && $matchesStatus
+            && ($filters['city'] === null || (int) $facility->city_id === $filters['city'])
             && ($filters['max_score'] === null || $score['score'] <= $filters['max_score']);
     }
 
     private function missingLabels(array $criteria): array
     {
-        return array_values(array_filter(['phone' => 'Telefon', 'email' => 'E-Mail', 'website' => 'Website', 'source' => 'Quelle', 'address' => 'Adressprüfung', 'verified' => 'Verifizierung'], fn (string $key): bool => ! $criteria[$key], ARRAY_FILTER_USE_KEY));
+        $labels = ['phone' => 'Telefon', 'email' => 'E-Mail', 'website' => 'Website', 'source' => 'Quelle', 'address' => 'Adressprüfung', 'verified' => 'Verifizierung'];
+
+        return collect($labels)
+            ->reject(fn (string $label, string $key): bool => $criteria[$key])
+            ->map(fn (string $label, string $key): array => ['key' => $key, 'label' => $label])
+            ->values()
+            ->all();
     }
 }
