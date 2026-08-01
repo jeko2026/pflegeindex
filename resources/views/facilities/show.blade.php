@@ -41,6 +41,7 @@
     // Clean and limit description helper
     $cleanAndLimitDescription = function (string $text, int $limit = 155): string {
         $text = strip_tags($text);
+        $text = str_replace(['**', '__'], '', $text);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = trim(preg_replace('/\s+/', ' ', $text));
 
@@ -77,6 +78,16 @@
         }
 
         return $truncated . '...';
+    };
+
+    // Render only the two editorial emphasis markers supported in descriptions.
+    // Escaping happens first so stored text can never introduce arbitrary HTML.
+    $formatDescription = function (string $text): string {
+        $escaped = e($text);
+        $escaped = preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $escaped);
+        $escaped = preg_replace('/__(.+?)__/u', '<u>$1</u>', $escaped);
+
+        return nl2br($escaped);
     };
 
     $pageTitle = $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
@@ -209,7 +220,7 @@
                 @if($editorialView && view()->exists($editorialView))
                     @include($editorialView)
                 @elseif(filled($facility->description))
-                    <p>{!! nl2br(e($facility->description)) !!}</p>
+                    <p>{!! $formatDescription($facility->description) !!}</p>
                 @else
                     <p>
                         @php

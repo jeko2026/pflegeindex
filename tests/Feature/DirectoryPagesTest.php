@@ -36,11 +36,12 @@ class DirectoryPagesTest extends TestCase
     public function test_facility_page_shows_safe_custom_description(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
-        $facility->update(['description' => "Persönliche Beratung vor Ort.\n<script>alert('x')</script>"]);
+        $facility->update(['description' => "**Persönliche Beratung** vor Ort.\n__Geprüfte Angabe__\n<script>alert('x')</script>"]);
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('Persönliche Beratung vor Ort.')
+            ->assertSee('<strong>Persönliche Beratung</strong> vor Ort.', false)
+            ->assertSee('<u>Geprüfte Angabe</u>', false)
             ->assertSee('&lt;script&gt;', false)
             ->assertDontSee("<script>alert('x')</script>", false)
             ->assertDontSee('im offiziellen Einrichtungsverzeichnis');
