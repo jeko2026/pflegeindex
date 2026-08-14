@@ -28,11 +28,13 @@
                         'website' => ['Website', $website],
                         'source' => ['Kontaktquelle', $source],
                     ] as $field => [$label, $value])
-                        <div class="admin-contact-filter__row" role="group" aria-label="{{ $label }}">
+                        <div class="admin-contact-filter__row @if(in_array($field, ['email', 'website'], true)) admin-contact-filter__row--absence @endif" role="group" aria-label="{{ $label }}">
                             <strong>{{ $label }}</strong>
                             <label><input name="{{ $field }}" type="radio" value="" @checked($value === '')> Alle</label>
                             <label><input name="{{ $field }}" type="radio" value="with" @checked($value === 'with')> Mit</label>
                             <label><input name="{{ $field }}" type="radio" value="without" @checked($value === 'without')> Ohne</label>
+                            @if($field === 'email')<label><input name="email" type="radio" value="official_absent" @checked($value === 'official_absent')> Offiziell nicht vorhanden</label>@endif
+                            @if($field === 'website')<label><input name="website" type="radio" value="official_absent" @checked($value === 'official_absent')> Offiziell nicht gefunden</label>@endif
                         </div>
                     @endforeach
                 </div>
@@ -61,8 +63,8 @@
                     <td><strong>{{ $facility->name }}</strong><small>{{ $facility->type }}</small></td>
                     <td>{{ $facility->postal_code }} {{ $facility->city->name }}</td>
                     <td>@if($facility->phone)<span class="admin-contact-present" title="Telefon vorhanden" aria-label="Telefon vorhanden">+</span>@else – @endif</td>
-                    <td>@if($facility->email)<span class="admin-contact-present" title="E-Mail vorhanden" aria-label="E-Mail vorhanden">+</span>@else – @endif</td>
-                    <td>@if($facility->website)<a href="{{ $facility->website }}" target="_blank" rel="noopener">Website</a>@else – @endif</td>
+                    <td>@if($facility->email)<span class="admin-contact-present" title="E-Mail vorhanden" aria-label="E-Mail vorhanden">+</span>@elseif($facility->official_email_absent)<span class="status-pill status-pill--not_found admin-contact-absent-pill">Offiziell nicht vorhanden</span>@else – @endif</td>
+                    <td>@if($facility->website)<a href="{{ $facility->website }}" target="_blank" rel="noopener">Website</a>@elseif($facility->official_website_absent)<span class="status-pill status-pill--not_found admin-contact-absent-pill">Offiziell nicht gefunden</span>@else – @endif</td>
                     <td><span class="status-pill status-pill--{{ $facility->contact_status }}">{{ $facility->contactStatusLabel() }}</span></td>
                     <td>
                         @if(filled($facility->description_draft))

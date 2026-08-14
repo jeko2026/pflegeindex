@@ -59,8 +59,10 @@ class FacilityController extends Controller
             ->when($phone === 'without', fn (Builder $builder) => $builder->where(fn (Builder $missing) => $missing->whereNull('phone')->orWhere('phone', '')))
             ->when($email === 'with', fn (Builder $builder) => $builder->whereNotNull('email')->where('email', '!=', ''))
             ->when($email === 'without', fn (Builder $builder) => $builder->where(fn (Builder $missing) => $missing->whereNull('email')->orWhere('email', '')))
+            ->when($email === 'official_absent', fn (Builder $builder) => $builder->where('official_email_absent', true))
             ->when($website === 'with', fn (Builder $builder) => $builder->whereNotNull('website')->where('website', '!=', ''))
             ->when($website === 'without', fn (Builder $builder) => $builder->where(fn (Builder $missing) => $missing->whereNull('website')->orWhere('website', '')))
+            ->when($website === 'official_absent', fn (Builder $builder) => $builder->where('official_website_absent', true))
             ->when($source === 'with', fn (Builder $builder) => $builder->whereNotNull('contact_source')->where('contact_source', '!=', ''))
             ->when($source === 'without', fn (Builder $builder) => $builder->where(fn (Builder $missing) => $missing->whereNull('contact_source')->orWhere('contact_source', '')))
             ->when($content === 'draft', fn (Builder $builder) => $builder->whereNotNull('description_draft'))
@@ -89,9 +91,13 @@ class FacilityController extends Controller
         }
         if ($email === 'without') {
             $activeFilters[] = 'Fehlende Angabe: E-Mail';
+        } elseif ($email === 'official_absent') {
+            $activeFilters[] = 'E-Mail: Offiziell nicht vorhanden';
         }
         if ($website === 'without') {
             $activeFilters[] = 'Fehlende Angabe: Website';
+        } elseif ($website === 'official_absent') {
+            $activeFilters[] = 'Website: Offiziell nicht gefunden';
         }
 
         return view('admin.facilities.index', compact(

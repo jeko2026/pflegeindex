@@ -11,10 +11,13 @@ The project follows Semantic Versioning.
 ### Added
 - Added finalized minimal legal and project-information pages with public routes and footer navigation.
 - Added a reproducible production package builder with split private-core, public-webroot and manifest outputs.
+- Added admin filters for confirmed absence of official e-mail and website contacts using `official_email_absent` and `official_website_absent`.
 
 ### Changed
 - Documented actual public-page, admin-session and `/up` external-resource behavior in the privacy notice.
 - Excluded the unused zero-byte ICO file from production packages; the active SVG favicon remains included.
+- Improved contact-filter alignment and absence-state presentation in the admin facility list.
+- Completed the production deployment successfully without database schema or data changes.
 
 ---
 

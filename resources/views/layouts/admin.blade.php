@@ -7,7 +7,7 @@
     <title>@yield('title', 'PflegeIndex Verwaltung')</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ asset('assets/styles.css') }}?v=20260722-1">
-    <link rel="stylesheet" href="{{ asset('assets/admin.css') }}?v=20260715-3">
+    <link rel="stylesheet" href="{{ asset('assets/admin.css') }}?v=20260814-6">
 </head>
 <body class="admin-body">
     @auth
