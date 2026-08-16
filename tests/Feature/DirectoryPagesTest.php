@@ -150,7 +150,7 @@ class DirectoryPagesTest extends TestCase
         $response = $this->get(route('facilities.show', [$city, $facility]))->assertOk();
         $response->assertSee('Für diese Einrichtung liegen derzeit keine direkten Kontaktdaten vor.');
         $response->assertSee('Kontaktdaten ergänzen');
-        $response->assertSee('mailto:info@pflegeindex.com?subject=' . rawurlencode("Kontaktdaten ergänzen: {$facility->name}"), false);
+        $response->assertSee('mailto:info@pflegeindex.com?subject='.rawurlencode("Kontaktdaten ergänzen: {$facility->name}"), false);
 
         // 6. Editorial description is used when description is present
         $facility->update(['description' => 'Dies ist eine sehr schöne, ruhige und freundliche Pflegeeinrichtung mit tollem Garten, in der ältere Menschen professionelle Hilfe bekommen.']);
@@ -554,7 +554,7 @@ class DirectoryPagesTest extends TestCase
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('data-quality-score-unified="10"', false)
+            ->assertSee('data-quality-score-unified="0"', false)
             ->assertSee('Details zur Datenqualität')
             ->assertSee('Unvollständig')
             ->assertSee('Noch nicht vollständig geprüft.')
@@ -580,8 +580,8 @@ class DirectoryPagesTest extends TestCase
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
-            ->assertSee('data-quality-score-unified="45"', false)
-            ->assertSee('Teilweise')
+            ->assertSee('data-quality-score-unified="55"', false)
+            ->assertSee('Gut')
             ->assertDontSee('data-quality-score="', false)
             ->assertDontSee('data-quality-criterion=');
     }
@@ -597,8 +597,9 @@ class DirectoryPagesTest extends TestCase
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
             ->assertSee('Nicht vorhanden')
-            ->assertSee('— Keine öffentliche E-Mail vorhanden')
-            ->assertSee('— Keine offizielle Website vorhanden')
+            ->assertSee('quality-score-statuses__group--officially_absent', false)
+            ->assertSee('Keine öffentliche E-Mail vorhanden')
+            ->assertSee('Keine offizielle Website vorhanden')
             ->assertDontSee('✕ E-Mail')
             ->assertDontSee('✕ Website');
     }
@@ -747,7 +748,7 @@ class DirectoryPagesTest extends TestCase
             ->assertDontSee('Website des Anbieters');
     }
 
-    public function test_trust_layer_hides_when_verified_without_checked_at(): void
+    public function test_trust_layer_remains_partial_without_checked_at(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
         $facility->update([
@@ -760,7 +761,9 @@ class DirectoryPagesTest extends TestCase
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
             ->assertDontSee('Kontaktdaten geprüft')
-            ->assertDontSee('Website des Anbieters');
+            ->assertSee('Kontaktdaten teilweise geprüft')
+            ->assertDontSee('Zuletzt geprüft am')
+            ->assertSee('Website des Anbieters');
     }
 
     public function test_trust_layer_does_not_link_an_invalid_source_url(): void

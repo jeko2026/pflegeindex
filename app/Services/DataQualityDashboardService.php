@@ -20,21 +20,24 @@ final class DataQualityDashboardService
         $overview = ['total_facilities' => 0, 'verified_count' => 0, 'unverified_count' => 0, 'verified_percentage' => 0.0, 'average_score' => 0.0, 'without_phone' => 0, 'without_email' => 0, 'without_website' => 0];
 
         Facility::query()
-            ->select(['id', 'city_id', 'name', 'phone', 'email', 'website', 'address', 'postal_code', 'contact_source', 'contact_status', 'contact_checked_at', 'updated_at'])
+            ->select(['id', 'city_id', 'name', 'phone', 'email', 'official_email_absent', 'website', 'official_website_absent', 'address', 'postal_code', 'contact_source', 'contact_status', 'contact_checked_at', 'updated_at'])
             ->orderBy('id')
             ->chunkById(500, function (Collection $facilities) use (&$cities, &$rows, &$overview, $cityNames, $filters): void {
                 foreach ($facilities as $facility) {
                     $score = $this->qualityScores->evaluate($facility);
                     $criteria = $score['criteria'];
+                    $isOpen = $facility->contactReviewIsOpen();
                     $overview['total_facilities']++;
-                    $overview['verified_count'] += $score['verified'] ? 1 : 0;
+                    $overview['verified_count'] += $score['review_documented'] ? 1 : 0;
+                    $overview['unverified_count'] += $isOpen ? 1 : 0;
                     $overview['without_phone'] += $criteria['phone'] ? 0 : 1;
-                    $overview['without_email'] += $criteria['email'] ? 0 : 1;
-                    $overview['without_website'] += $criteria['website'] ? 0 : 1;
+                    $overview['without_email'] += $facility->emailReviewIsOpen() ? 1 : 0;
+                    $overview['without_website'] += $facility->websiteReviewIsOpen() ? 1 : 0;
                     $cityId = (int) $facility->city_id;
-                    $cities[$cityId] ??= ['city_id' => $cityId, 'name' => (string) ($cityNames[$cityId] ?? ''), 'total_facilities' => 0, 'verified_count' => 0, 'score_total' => 0];
+                    $cities[$cityId] ??= ['city_id' => $cityId, 'name' => (string) ($cityNames[$cityId] ?? ''), 'total_facilities' => 0, 'verified_count' => 0, 'unverified_count' => 0, 'score_total' => 0];
                     $cities[$cityId]['total_facilities']++;
-                    $cities[$cityId]['verified_count'] += $score['verified'] ? 1 : 0;
+                    $cities[$cityId]['verified_count'] += $score['review_documented'] ? 1 : 0;
+                    $cities[$cityId]['unverified_count'] += $isOpen ? 1 : 0;
                     $cities[$cityId]['score_total'] += $score['score'];
 
                     if ($this->matches($facility, $score, $filters)) {
@@ -51,13 +54,12 @@ final class DataQualityDashboardService
                                 'not_found' => 'Nicht gefunden',
                                 default => 'Noch offen',
                             },
-                            'missing' => $this->missingLabels($criteria),
+                            'missing' => $this->missingLabels($score['field_statuses']),
                         ];
                     }
                 }
             });
 
-        $overview['unverified_count'] = $overview['total_facilities'] - $overview['verified_count'];
         $overview['verified_percentage'] = $overview['total_facilities'] > 0 ? round(($overview['verified_count'] / $overview['total_facilities']) * 100, 2) : 0.0;
         $overview['average_score'] = $overview['total_facilities'] > 0 ? round(collect($cities)->sum('score_total') / $overview['total_facilities'], 2) : 0.0;
         $overview += $this->qualityScores->qualityForScore((int) round($overview['average_score']));
@@ -65,11 +67,12 @@ final class DataQualityDashboardService
         $cityRows = collect($cities)->map(function (array $city): array {
             $city['average_score'] = round($city['score_total'] / $city['total_facilities'], 2);
             $city['verified_count'] = (int) $city['verified_count'];
-            $city['unverified_count'] = $city['total_facilities'] - $city['verified_count'];
+            $city['unverified_count'] = (int) $city['unverified_count'];
             $city['verified_percentage'] = round(($city['verified_count'] / $city['total_facilities']) * 100, 2);
             $city['priority'] = $city['verified_percentage'] < 25
                 ? 'Hoch'
                 : ($city['verified_percentage'] < 60 ? 'Mittel' : 'Niedrig');
+
             return $city;
         })->sortBy([['verified_percentage', 'asc'], ['unverified_count', 'desc'], ['name', 'asc']])->take(20)->values()->all();
         $this->sortRows($rows, $filters);
@@ -154,11 +157,11 @@ final class DataQualityDashboardService
 
     private function matches(Facility $facility, array $score, array $filters): bool
     {
-        $isOpen = $facility->contact_status === null || $facility->contact_status === 'unverified';
+        $isOpen = $facility->contactReviewIsOpen();
         $matchesTask = match ($filters['task']) {
             'missing_phone' => ! $score['criteria']['phone'],
-            'missing_email' => ! $score['criteria']['email'],
-            'missing_website' => ! $score['criteria']['website'],
+            'missing_email' => $facility->emailReviewIsOpen(),
+            'missing_website' => $facility->websiteReviewIsOpen(),
             default => $isOpen,
         };
         $matchesStatus = match ($filters['status']) {
@@ -173,12 +176,13 @@ final class DataQualityDashboardService
             && ($filters['max_score'] === null || $score['score'] <= $filters['max_score']);
     }
 
-    private function missingLabels(array $criteria): array
+    /** @param array<string, array{status:string}> $fieldStatuses */
+    private function missingLabels(array $fieldStatuses): array
     {
         $labels = ['phone' => 'Telefon', 'email' => 'E-Mail', 'website' => 'Website', 'source' => 'Quelle', 'address' => 'Adressprüfung', 'verified' => 'Verifizierung'];
 
         return collect($labels)
-            ->reject(fn (string $label, string $key): bool => $criteria[$key])
+            ->filter(fn (string $label, string $key): bool => $fieldStatuses[$key]['status'] === 'missing')
             ->map(fn (string $label, string $key): array => ['key' => $key, 'label' => $label])
             ->values()
             ->all();

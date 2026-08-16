@@ -63,13 +63,39 @@ final class DataQualityDashboardTest extends TestCase
             ->assertSee('Prüfen →');
     }
 
-    public function test_default_task_contains_only_open_facilities_and_is_selected_in_dropdown(): void
+    public function test_open_kpi_and_queue_share_the_same_status_semantics(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam', 'state_slug' => 'brandenburg']);
-        $this->facility($city, 'Offen', null);
-        $this->facility($city, 'In Prüfung', 'pending');
-        $this->facility($city, 'Geprüft', 'verified');
+        $missing = $this->facility($city, 'Ohne Status', null);
+        $unverified = $this->facility($city, 'Ungeprüft', 'unverified');
+        $pending = $this->facility($city, 'In Prüfung', 'pending');
+        $notFound = $this->facility($city, 'Nicht gefunden', 'not_found');
+        $verified = $this->facility($city, 'Geprüft', 'verified');
+        $verified->update([
+            'phone' => '+4930123456',
+            'contact_source' => 'https://example.de/kontakt',
+            'contact_checked_at' => now(),
+        ]);
+        $undocumentedVerified = $this->facility($city, 'Nicht dokumentiert verifiziert', 'verified');
+        $undocumentedVerified->update([
+            'phone' => null,
+            'contact_source' => null,
+            'contact_checked_at' => null,
+        ]);
+
+        $dashboard = app(DataQualityDashboardService::class)->dashboard();
+
+        $this->assertSame(3, $dashboard['overview']['unverified_count']);
+        $this->assertSame(1, $dashboard['overview']['verified_count']);
+        $this->assertSame(3, $dashboard['filtered_count']);
+        $this->assertEqualsCanonicalizing(
+            [$missing->id, $unverified->id, $pending->id],
+            collect($dashboard['facilities'])->pluck('id')->all(),
+        );
+        $this->assertNotContains($notFound->id, collect($dashboard['facilities'])->pluck('id')->all());
+        $this->assertNotContains($verified->id, collect($dashboard['facilities'])->pluck('id')->all());
+        $this->assertNotContains($undocumentedVerified->id, collect($dashboard['facilities'])->pluck('id')->all());
 
         $response = $this->actingAs($admin)->get(route('admin.data-quality'))->assertOk();
 
@@ -77,9 +103,6 @@ final class DataQualityDashboardTest extends TestCase
             ->assertSee('value="open" selected', false)
             ->assertSee('Aktive Aufgabe')
             ->assertDontSee('Aufgabe:</span>', false)
-            ->assertSee('Offen')
-            ->assertDontSee('<td>In Prüfung</td>', false)
-            ->assertDontSee('<td>Geprüft</td>', false)
             ->assertDontSee('type="checkbox" name="missing_', false)
             ->assertDontSee('type="radio" name="task"', false);
         $this->assertSame(1, substr_count($response->getContent(), '<select name="task">'));
@@ -112,6 +135,80 @@ final class DataQualityDashboardTest extends TestCase
         $dashboard = app(DataQualityDashboardService::class)->dashboard(['task' => 'missing_website']);
 
         $this->assertSame([$websiteMissing->id], collect($dashboard['facilities'])->pluck('id')->all());
+    }
+
+    public function test_officially_absent_email_is_not_an_open_email_task(): void
+    {
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam', 'state_slug' => 'brandenburg']);
+        $officiallyAbsent = $this->facility($city, 'E-Mail offiziell nicht vorhanden', null);
+        $officiallyAbsent->update(['official_email_absent' => true]);
+        $actionRequired = $this->facility($city, 'E-Mail noch prüfen', null);
+
+        $dashboard = app(DataQualityDashboardService::class)->dashboard(['task' => 'missing_email']);
+
+        $this->assertSame(1, $dashboard['overview']['without_email']);
+        $this->assertSame([$actionRequired->id], collect($dashboard['facilities'])->pluck('id')->all());
+        $this->assertNotContains($officiallyAbsent->id, collect($dashboard['facilities'])->pluck('id')->all());
+    }
+
+    public function test_officially_absent_website_is_not_an_open_website_task(): void
+    {
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam', 'state_slug' => 'brandenburg']);
+        $officiallyAbsent = $this->facility($city, 'Website offiziell nicht vorhanden', null);
+        $officiallyAbsent->update(['official_website_absent' => true]);
+        $actionRequired = $this->facility($city, 'Website noch prüfen', null);
+
+        $dashboard = app(DataQualityDashboardService::class)->dashboard(['task' => 'missing_website']);
+
+        $this->assertSame(1, $dashboard['overview']['without_website']);
+        $this->assertSame([$actionRequired->id], collect($dashboard['facilities'])->pluck('id')->all());
+        $this->assertNotContains($officiallyAbsent->id, collect($dashboard['facilities'])->pluck('id')->all());
+    }
+
+    public function test_dashboard_action_destinations_use_the_same_open_rules(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam', 'state_slug' => 'brandenburg']);
+        $this->facility($city, 'Offen ohne Status', null);
+        $this->facility($city, 'Offen unverified', 'unverified');
+        $this->facility($city, 'Offen pending', 'pending');
+        $this->facility($city, 'Abgeschlossen not found', 'not_found');
+        $this->facility($city, 'Abgeschlossen verified', 'verified');
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index', ['status' => 'unverified']))
+            ->assertOk()
+            ->assertSee('Offen ohne Status')
+            ->assertSee('Offen unverified')
+            ->assertSee('Offen pending')
+            ->assertDontSee('Abgeschlossen not found')
+            ->assertDontSee('Abgeschlossen verified');
+    }
+
+    public function test_dashboard_missing_contact_destinations_exclude_officially_absent_results(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam', 'state_slug' => 'brandenburg']);
+        $emailAbsent = $this->facility($city, 'E-Mail abgeschlossen', null);
+        $emailAbsent->update(['official_email_absent' => true, 'website' => 'https://example.de']);
+        $emailOpen = $this->facility($city, 'E-Mail offen', null);
+        $emailOpen->update(['website' => 'https://example.de']);
+        $websiteAbsent = $this->facility($city, 'Website abgeschlossen', null);
+        $websiteAbsent->update(['email' => 'website-abgeschlossen@example.de', 'official_website_absent' => true]);
+        $websiteOpen = $this->facility($city, 'Website offen', null);
+        $websiteOpen->update(['email' => 'website-offen@example.de']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index', ['missing' => 'email']))
+            ->assertOk()
+            ->assertSee($emailOpen->name)
+            ->assertDontSee($emailAbsent->name);
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index', ['missing' => 'website']))
+            ->assertOk()
+            ->assertSee($websiteOpen->name)
+            ->assertDontSee($websiteAbsent->name);
     }
 
     public function test_additional_filters_are_applied_on_top_of_the_selected_task(): void
@@ -446,7 +543,10 @@ final class DataQualityDashboardTest extends TestCase
             'type' => 'Pflege',
             'address' => 'Straße 1',
             'postal_code' => '14467',
+            'phone' => $status === 'verified' ? '+4930123456' : null,
+            'contact_source' => $status === 'verified' ? 'https://example.de/kontakt' : null,
             'contact_status' => $status,
+            'contact_checked_at' => $status === 'verified' ? now() : null,
         ]);
     }
 }

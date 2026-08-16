@@ -54,4 +54,70 @@ final class QualityScoreServiceTest extends TestCase
         $this->assertSame(1, $aggregate['unverified_count']);
         $this->assertSame(50.0, $aggregate['verified_percentage']);
     }
+
+    public function test_officially_absent_contacts_do_not_receive_quality_score_points(): void
+    {
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam']);
+        $facility = Facility::create([
+            'source_id' => 'quality-officially-absent',
+            'city_id' => $city->id,
+            'name' => 'Ohne öffentliche Kontakte',
+            'slug' => 'ohne-oeffentliche-kontakte',
+            'type' => 'Pflege',
+            'address' => 'Straße 1',
+            'postal_code' => '14467',
+            'official_email_absent' => true,
+            'official_website_absent' => true,
+        ]);
+
+        $score = app(QualityScoreService::class)->evaluate($facility);
+
+        $this->assertSame(0, $score['score']);
+        $this->assertFalse($score['criteria']['email']);
+        $this->assertFalse($score['criteria']['website']);
+        $this->assertSame('officially_absent', $score['field_statuses']['email']['status']);
+        $this->assertSame('officially_absent', $score['field_statuses']['website']['status']);
+    }
+
+    public function test_verified_status_alone_is_not_a_documented_review(): void
+    {
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam']);
+        $facility = Facility::create([
+            'source_id' => 'quality-undocumented-review',
+            'city_id' => $city->id,
+            'name' => 'Nicht dokumentierte Prüfung',
+            'slug' => 'nicht-dokumentierte-pruefung',
+            'type' => 'Pflege',
+            'address' => 'Straße 1',
+            'postal_code' => '14467',
+            'contact_status' => 'verified',
+        ]);
+
+        $score = app(QualityScoreService::class)->evaluate($facility);
+
+        $this->assertFalse($score['review_documented']);
+        $this->assertSame('unverified', $score['trust']['status']);
+    }
+
+    public function test_verified_contact_without_a_valid_source_remains_partially_verified(): void
+    {
+        $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam']);
+        $facility = Facility::create([
+            'source_id' => 'quality-review-without-source',
+            'city_id' => $city->id,
+            'name' => 'Teilweise dokumentierte Prüfung',
+            'slug' => 'teilweise-dokumentierte-pruefung',
+            'type' => 'Pflege',
+            'address' => 'Straße 1',
+            'postal_code' => '14467',
+            'phone' => '+49 331 123456',
+            'contact_status' => 'verified',
+            'contact_checked_at' => now(),
+        ]);
+
+        $score = app(QualityScoreService::class)->evaluate($facility);
+
+        $this->assertFalse($score['review_documented']);
+        $this->assertSame('partial', $score['trust']['status']);
+    }
 }

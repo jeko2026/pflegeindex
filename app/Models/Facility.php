@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Services\QualityScoreService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
-use App\Services\QualityScoreService;
 
 class Facility extends Model
 {
@@ -81,6 +82,29 @@ class Facility extends Model
     public function contactSuggestions(): HasMany
     {
         return $this->hasMany(ContactSuggestion::class);
+    }
+
+    public function contactReviewIsOpen(): bool
+    {
+        return $this->contact_status === null
+            || in_array($this->contact_status, ['unverified', 'pending'], true);
+    }
+
+    public function emailReviewIsOpen(): bool
+    {
+        return blank($this->email) && ! $this->official_email_absent;
+    }
+
+    public function websiteReviewIsOpen(): bool
+    {
+        return blank($this->website) && ! $this->official_website_absent;
+    }
+
+    public function scopeContactReviewOpen(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $open): Builder => $open
+            ->whereNull('contact_status')
+            ->orWhereIn('contact_status', ['unverified', 'pending']));
     }
 
     public function formattedPhone(): ?string

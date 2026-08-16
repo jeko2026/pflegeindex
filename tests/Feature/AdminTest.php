@@ -378,8 +378,14 @@ class AdminTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $open = $this->createFacility();
         $open->update(['name' => 'Offene Einrichtung', 'contact_status' => null, 'email' => null]);
-        $verified = $this->createFacility();
-        $verified->update(['name' => 'Geprüfte Einrichtung', 'contact_status' => 'verified']);
+        $verified = $open->replicate();
+        $verified->fill([
+            'source_id' => 'admin-verified-14467',
+            'name' => 'Geprüfte Einrichtung',
+            'slug' => 'gepruefte-einrichtung-14467',
+            'email' => 'kontakt@example.de',
+            'contact_status' => 'verified',
+        ])->save();
 
         $this->actingAs($admin)
             ->get(route('admin.facilities.index', ['missing' => 'email']))
