@@ -43,7 +43,7 @@ final class QualityScoreServiceTest extends TestCase
     {
         $city = City::create(['name' => 'Potsdam', 'slug' => 'potsdam']);
         $facilities = collect([
-            Facility::create(['source_id' => 'quality-1', 'city_id' => $city->id, 'name' => 'Eins', 'slug' => 'eins', 'type' => 'Pflege', 'address' => 'Straße 1', 'postal_code' => '14467', 'contact_status' => 'verified']),
+            Facility::create(['source_id' => 'quality-1', 'city_id' => $city->id, 'name' => 'Eins', 'slug' => 'eins', 'type' => 'Pflege', 'address' => 'Straße 1', 'postal_code' => '14467', 'phone' => '+49 331 123456', 'contact_source' => 'https://example.de/kontakt', 'contact_status' => 'verified', 'contact_checked_at' => now()]),
             Facility::create(['source_id' => 'quality-2', 'city_id' => $city->id, 'name' => 'Zwei', 'slug' => 'zwei', 'type' => 'Pflege', 'address' => 'Straße 2', 'postal_code' => '14467']),
         ]);
 

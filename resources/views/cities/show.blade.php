@@ -7,7 +7,7 @@
         : "Pflegeeinrichtungen in {$city->name} – PflegeIndex";
     $pageDescription = $currentPage > 1
         ? "Seite {$currentPage} mit weiteren Pflegeeinrichtungen in {$city->name}."
-        : "{$facilityCount} Pflegeeinrichtungen in {$city->name}: Anschriften, Einrichtungsarten und geprüfte Kontaktdaten.";
+        : "{$facilityCount} Pflegeeinrichtungen in {$city->name}: Anschriften, Einrichtungsarten und verfügbare Kontaktdaten.";
     $canonicalUrl = $currentPage > 1
         ? route('cities.show', [$city, 'page' => $currentPage])
         : route('cities.show', $city);
@@ -108,6 +108,7 @@
                         <p>Durchschnittliche Datenqualität: <b>{{ number_format($qualityStats['average_score'], 0, ',', '.') }} %</b></p>
                         <p>Geprüfte Einrichtungen: <b>{{ $qualityStats['verified_count'] }} von {{ $qualityStats['total_facilities'] }}</b></p>
                         <p>{{ number_format($qualityStats['verified_percentage'], 0, ',', '.') }} % der Einrichtungen wurden geprüft</p>
+                        <p>Die Angaben beziehen sich auf Vollständigkeit und dokumentierte Prüfung der Einrichtungsdaten, nicht auf die Pflegequalität.</p>
                         <div class="city-quality-summary__bar" role="progressbar" aria-label="Durchschnittliche Datenqualität" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $qualityStats['progress_percentage'] }}"><span class="city-quality-summary__bar-fill city-quality-summary__bar-fill--{{ $qualityStats['quality_color'] }}" style="width:{{ $qualityStats['progress_percentage'] }}%"></span></div>
                     </section>
                 @endif

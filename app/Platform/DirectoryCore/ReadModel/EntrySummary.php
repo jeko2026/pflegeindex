@@ -20,5 +20,7 @@ final readonly class EntrySummary
         public ?string $address,
         public ?string $postalCode,
         public ?string $telephone,
+        public ?string $email = null,
+        public ?string $website = null,
     ) {}
 }

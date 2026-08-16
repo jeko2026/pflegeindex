@@ -30,6 +30,10 @@ class DirectoryCorePageTest extends TestCase
             '14467',
             '+4933188700',
         );
+        $facility->update([
+            'email' => 'kontakt@example.de',
+            'website' => 'https://example.de/pflegezentrum',
+        ]);
         $canonical = route('directory.index');
         $facilityUrl = route('facilities.show', [$city, $facility]);
 
@@ -40,11 +44,15 @@ class DirectoryCorePageTest extends TestCase
             ->assertSee($facility->name)
             ->assertSee('href="'.$facilityUrl.'"', false)
             ->assertSee('+49 331 88700')
+            ->assertSee('href="mailto:kontakt@example.de"', false)
+            ->assertSee('href="https://example.de/pflegezentrum"', false)
             ->assertSee('<title>Pflegeangebote finden – PflegeIndex</title>', false)
             ->assertSee('<meta name="description" content="Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.">', false)
             ->assertSee('<link rel="canonical" href="'.$canonical.'">', false);
 
         $this->assertInstanceOf(PflegeEntryCardViewModel::class, $paginator->items()[0]);
+        $this->assertSame('kontakt@example.de', $paginator->items()[0]->email);
+        $this->assertSame('https://example.de/pflegezentrum', $paginator->items()[0]->website);
         $this->assertSame(1, $paginator->total());
         $this->assertSame(24, $paginator->perPage());
     }
@@ -224,6 +232,25 @@ class DirectoryCorePageTest extends TestCase
             ->assertOk()
             ->assertSee('Keine passenden Einrichtungen')
             ->assertSee('Ändern Sie den Suchbegriff oder setzen Sie die Filter zurück.');
+    }
+
+    public function test_directory_cards_omit_invalid_email_and_website_values(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam');
+        $facility = $this->createFacility($city, 'Ungültiger Kontakt', 'Ambulante Pflege');
+        $facility->update([
+            'email' => 'keine-email-adresse',
+            'website' => 'javascript:alert(1)',
+        ]);
+
+        $response = $this->get(route('directory.index'))->assertOk();
+        $card = $this->paginator($response)->items()[0];
+
+        $response
+            ->assertDontSee('mailto:keine-email-adresse', false)
+            ->assertDontSee('javascript:alert(1)', false);
+        $this->assertNull($card->email);
+        $this->assertNull($card->website);
     }
 
     public function test_directory_keeps_a_constant_query_count_without_n_plus_one(): void

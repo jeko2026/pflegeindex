@@ -144,6 +144,8 @@ final class PflegeEntryRepository implements EntryRepository
             address: $facility->address,
             postalCode: $facility->postal_code,
             telephone: $facility->phone,
+            email: $facility->email,
+            website: $facility->website,
         );
     }
 }

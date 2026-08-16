@@ -124,7 +124,7 @@ final class QualityScoreService
         $items = $facilities instanceof Collection ? $facilities->values() : collect($facilities)->values();
         $total = $items->count();
         $scores = $items->map(fn (Facility $facility): array => $this->evaluate($facility));
-        $verified = $scores->where('verified', true)->count();
+        $verified = $scores->where('review_documented', true)->count();
 
         return $this->aggregateResult($scores, $total, $verified, $items->pluck('type')->filter()->unique()->count());
     }
@@ -145,7 +145,7 @@ final class QualityScoreService
                     $score = $this->evaluate($facility);
                     $scores->push($score);
                     $total++;
-                    $verified += $score['verified'] ? 1 : 0;
+                    $verified += $score['review_documented'] ? 1 : 0;
                 }
             });
 
@@ -154,7 +154,7 @@ final class QualityScoreService
 
     public static function cityCacheKey(int $cityId): string
     {
-        return 'city-data-quality:'.$cityId;
+        return 'city-data-quality:v2:'.$cityId;
     }
 
     /** @param Collection<int, array{score:int, verified:bool}> $scores */

@@ -4,9 +4,10 @@
     $editorialView = $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
         ? 'facilities.editorial.faehrmann-pflege-gmbh-16278'
         : null;
-    $displayWebsite = $editorialView ? 'https://faehrmann-pflege.de/' : $facility->website;
-    $emailIsValid = filled($facility->email) && filter_var(trim($facility->email), FILTER_VALIDATE_EMAIL) !== false;
-    $hasDirectContact = filled($facility->phone) || $emailIsValid || filled($displayWebsite);
+    $displayPhone = \App\Support\PublicContact::phone($facility->phone);
+    $displayEmail = \App\Support\PublicContact::email($facility->email);
+    $displayWebsite = $editorialView ? 'https://faehrmann-pflege.de/' : \App\Support\PublicContact::website($facility->website);
+    $hasDirectContact = filled($displayPhone) || filled($displayEmail) || filled($displayWebsite);
     $canonicalUrl = route('facilities.show', [$city, $facility]);
 
     // Build rawDescription for SEO
@@ -119,8 +120,8 @@
             'name' => $facility->name,
             'description' => $pageDescription,
             'url' => $canonicalUrl,
-            'telephone' => filled($facility->phone) ? $facility->phone : null,
-            'email' => $emailIsValid ? $facility->email : null,
+            'telephone' => $displayPhone,
+            'email' => $displayEmail,
             'sameAs' => $displayWebsite ? [$displayWebsite] : null,
             'hasOfferCatalog' => $editorialView ? [
                 '@type' => 'OfferCatalog',
@@ -209,9 +210,9 @@
                 <p class="detail-address"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg> {{ $facility->address }}, {{ $facility->postal_code }} {{ $city->name }}</p>
                 @if($hasDirectContact)
                     <nav class="mobile-contact-actions" aria-label="Schnellkontakt">
-                        @if($facility->phone)<a href="tel:{{ $facility->phone }}">Anrufen</a>@endif
+                        @if($displayPhone)<a href="tel:{{ $displayPhone }}">Anrufen</a>@endif
                         @if($displayWebsite)<a href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website</a>@endif
-                        @if($emailIsValid)<a href="mailto:{{ $facility->email }}">E-Mail</a>@endif
+                        @if($displayEmail)<a href="mailto:{{ $displayEmail }}">E-Mail</a>@endif
                     </nav>
                 @endif
             </div>
@@ -265,13 +266,13 @@
         <aside class="contact-card">
             <span class="contact-card__label">Kontakt</span>
             @if($hasDirectContact)
-                @if($facility->phone)
-                    <h2 class="contact-phone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.3 3.5 10 7.8 8.1 10a15.7 15.7 0 0 0 5.9 5.9l2.2-1.9 4.3 2.7-.7 3.2c-.2.8-.9 1.3-1.7 1.3A15.3 15.3 0 0 1 2.8 5.9c0-.8.5-1.5 1.3-1.7l3.2-.7Z"/></svg><a href="tel:{{ $facility->phone }}">{{ $facility->formattedPhone() }}</a></h2>
-                    <a class="contact-button" href="tel:{{ $facility->phone }}">Jetzt anrufen</a>
+                @if($displayPhone)
+                    <h2 class="contact-phone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.3 3.5 10 7.8 8.1 10a15.7 15.7 0 0 0 5.9 5.9l2.2-1.9 4.3 2.7-.7 3.2c-.2.8-.9 1.3-1.7 1.3A15.3 15.3 0 0 1 2.8 5.9c0-.8.5-1.5 1.3-1.7l3.2-.7Z"/></svg><a href="tel:{{ $displayPhone }}">{{ $facility->formattedPhone() }}</a></h2>
+                    <a class="contact-button" href="tel:{{ $displayPhone }}">Jetzt anrufen</a>
                 @else
                     <h2 class="contact-phone contact-phone--pending">Kontakt zur Einrichtung</h2>
                 @endif
-                @if($emailIsValid)<a class="contact-secondary" href="mailto:{{ $facility->email }}">E-Mail senden</a>@endif
+                @if($displayEmail)<a class="contact-secondary" href="mailto:{{ $displayEmail }}">E-Mail senden</a>@endif
                 @if($displayWebsite)<a class="contact-secondary" href="{{ $displayWebsite }}" target="_blank" rel="noopener">Website öffnen</a>@endif
             @else
                 <h2 class="contact-phone contact-phone--pending">Kontakt</h2>

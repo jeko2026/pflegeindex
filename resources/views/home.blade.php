@@ -40,7 +40,7 @@
                 'name' => 'Woher stammen die Daten auf PflegeIndex?',
                 'acceptedAnswer' => [
                     '@type' => 'Answer',
-                    'text' => 'Die amtlichen Grunddaten stammen vom Landesamt für Soziales und Versorgung (LASV) Brandenburg. Kontaktangaben, E-Mail-Adressen, Websites und redaktionelle Beschreibungen werden gesondert geprüft und auf Basis offizieller Quellen ergänzt.'
+                    'text' => 'Die amtlichen Grunddaten stammen vom Landesamt für Soziales und Versorgung (LASV) Brandenburg. Kontaktangaben und redaktionelle Beschreibungen können ergänzt sein. Der jeweilige Prüfstatus wird im Profil ausgewiesen.'
                 ]
             ],
             [
@@ -197,7 +197,7 @@
             <div class="steps">
                 <article class="step"><span class="step-number">1</span><h3>Ort eingeben</h3><p>Suchen Sie nach Stadt oder Postleitzahl und wählen Sie die gewünschte Pflegeform.</p></article>
                 <article class="step"><span class="step-number">2</span><h3>Angebote vergleichen</h3><p>Prüfen Sie Anschrift, Einrichtungsart und veröffentlichte Kontaktdaten.</p></article>
-                <article class="step"><span class="step-number">3</span><h3>Kontakt aufnehmen</h3><p>Geprüfte Telefonnummern und Websites werden direkt im Profil angezeigt.</p></article>
+                <article class="step"><span class="step-number">3</span><h3>Kontakt aufnehmen</h3><p>Verfügbare Telefonnummern, E-Mail-Adressen und Websites werden direkt im Profil angezeigt. Der jeweilige Prüfstatus ist dort ausgewiesen.</p></article>
             </div>
         </div>
     </section>
@@ -219,7 +219,7 @@
                 <details class="faq-item">
                     <summary class="faq-question">Woher stammen die Daten auf PflegeIndex?</summary>
                     <div class="faq-answer">
-                        <p>Die amtlichen Grunddaten stammen vom Landesamt für Soziales und Versorgung (LASV) Brandenburg. Kontaktangaben, E-Mail-Adressen, Websites und redaktionelle Beschreibungen werden gesondert geprüft und auf Basis offizieller Quellen ergänzt.</p>
+                        <p>Die amtlichen Grunddaten stammen vom Landesamt für Soziales und Versorgung (LASV) Brandenburg. Kontaktangaben und redaktionelle Beschreibungen können ergänzt sein. Der jeweilige Prüfstatus wird im Profil ausgewiesen.</p>
                     </div>
                 </details>
                 <details class="faq-item">

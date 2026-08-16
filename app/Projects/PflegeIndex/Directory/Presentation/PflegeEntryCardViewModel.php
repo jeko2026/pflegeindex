@@ -15,6 +15,8 @@ final readonly class PflegeEntryCardViewModel
         public ?string $postal_code,
         public ?string $phone,
         public string $url,
+        public ?string $email = null,
+        public ?string $website = null,
     ) {}
 
     public function formattedPhone(): ?string

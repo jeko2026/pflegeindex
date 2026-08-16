@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Projects\PflegeIndex\Directory\Presentation;
 
 use App\Platform\DirectoryCore\ReadModel\EntrySummary;
+use App\Support\PublicContact;
 use UnexpectedValueException;
 
 final class PflegeEntryPresenter
@@ -34,8 +35,10 @@ final class PflegeEntryPresenter
             ),
             address: $entry->address,
             postal_code: $entry->postalCode,
-            phone: $entry->telephone,
+            phone: PublicContact::phone($entry->telephone),
             url: route('facilities.show', [$entry->locationScope->identifier, $entry->slug]),
+            email: PublicContact::email($entry->email),
+            website: PublicContact::website($entry->website),
         );
     }
 }

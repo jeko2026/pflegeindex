@@ -3,6 +3,8 @@
   --navy-dark: #0d2949;
   --green: #4caf50;
   --green-dark: #358d3a;
+  --cta-green: #2f7d32;
+  --cta-green-hover: #286b2b;
   --red: #e0525c;
   --ink: #17283a;
   --muted: #607083;
@@ -53,8 +55,8 @@ img, svg { display: block; }
 .hero-search input { padding: 0 15px 0 46px; }
 .hero-search select { padding: 0 12px; border-left: 1px solid var(--line); }
 .hero-search .primary-button { padding-right: 16px; padding-left: 16px; font-size: 15px; }
-.primary-button { min-height: 51px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; color: #fff; border: 0; border-radius: 11px; background: var(--green); font-weight: 700; text-decoration: none; cursor: pointer; transition: background 180ms ease, transform 180ms ease; }
-.primary-button:hover { background: var(--green-dark); transform: translateY(-1px); }
+.primary-button { min-height: 51px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; color: #fff; border: 0; border-radius: 11px; background: var(--cta-green); font-weight: 700; text-decoration: none; cursor: pointer; transition: background 180ms ease, transform 180ms ease; }
+.primary-button:hover { background: var(--cta-green-hover); transform: translateY(-1px); }
 .primary-button svg { width: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .search-hint { margin: 12px 0 0; color: #657585; font-size: 14px; }
 

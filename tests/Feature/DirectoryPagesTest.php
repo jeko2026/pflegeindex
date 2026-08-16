@@ -466,6 +466,42 @@ class DirectoryPagesTest extends TestCase
         );
     }
 
+    public function test_related_facility_cards_use_the_same_contact_validation_as_directory_cards(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $valid = $this->createFacility(
+            $city,
+            'related-valid-contact',
+            'Gültiger Kontakt',
+            'gueltiger-kontakt',
+            'Parkstraße 2',
+        );
+        $valid->update([
+            'email' => 'kontakt@example.de',
+            'website' => 'https://example.de/pflege',
+        ]);
+        $invalid = $this->createFacility(
+            $city,
+            'related-invalid-contact',
+            'Ungültiger Kontakt',
+            'ungueltiger-kontakt',
+            'Parkstraße 3',
+        );
+        $invalid->update([
+            'email' => 'keine-email-adresse',
+            'website' => 'javascript:alert(1)',
+        ]);
+
+        $related = $this->relatedFacilitiesHtml(
+            $this->get(route('facilities.show', [$city, $facility]))->assertOk(),
+        );
+
+        $this->assertStringContainsString('href="mailto:kontakt@example.de"', $related);
+        $this->assertStringContainsString('href="https://example.de/pflege"', $related);
+        $this->assertStringNotContainsString('mailto:keine-email-adresse', $related);
+        $this->assertStringNotContainsString('javascript:alert(1)', $related);
+    }
+
     public function test_facility_page_hides_related_block_when_the_facility_is_alone_in_its_city(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();
@@ -722,12 +758,35 @@ class DirectoryPagesTest extends TestCase
             'contact_checked_at' => '2026-07-20 12:00:00',
             'contact_source' => 'https://example.com/impressum',
             'phone' => '+4930123456',
+            'email' => 'kontakt@example.de',
+            'website' => 'https://example.de/pflege',
         ]);
 
         $this->get(route('facilities.show', [$city, $facility]))
             ->assertOk()
             ->assertDontSee('Kontaktdaten geprüft')
-            ->assertDontSee('Website des Anbieters');
+            ->assertSee('Kontaktdaten noch nicht vollständig geprüft')
+            ->assertDontSee('Website des Anbieters')
+            ->assertSee('href="tel:+4930123456"', false)
+            ->assertSee('href="mailto:kontakt@example.de"', false)
+            ->assertSee('href="https://example.de/pflege"', false);
+    }
+
+    public function test_public_copy_does_not_claim_that_all_available_contacts_are_verified(): void
+    {
+        [$city, $facility] = $this->createDirectoryEntry();
+        $facility->update(['phone' => '+4930123456', 'contact_status' => null]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Verfügbare Telefonnummern, E-Mail-Adressen und Websites werden direkt im Profil angezeigt.')
+            ->assertSee('Der jeweilige Prüfstatus ist dort ausgewiesen.')
+            ->assertDontSee('Geprüfte Telefonnummern und Websites werden direkt im Profil angezeigt.');
+
+        $this->get(route('directory.index'))
+            ->assertOk()
+            ->assertSee('Der jeweilige Prüfstatus wird im Profil ausgewiesen.')
+            ->assertDontSee('werden nur nach Prüfung einer offiziellen Quelle veröffentlicht.');
     }
 
     public function test_trust_layer_hides_when_verified_but_no_contacts(): void

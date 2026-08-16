@@ -45,7 +45,7 @@
 
         <section>
             <div class="results-heading"><h2>{{ number_format($facilities->total(), 0, ',', '.') }} Ergebnisse</h2><p>{{ $facilities->count() }} auf dieser Seite · nach Ort und Name sortiert</p></div>
-            <div class="notice">Offizielle Basisdaten des LASV Brandenburg. Ergänzende Telefonnummern, E-Mail-Adressen und Websites werden nur nach Prüfung einer offiziellen Quelle veröffentlicht.</div>
+            <div class="notice">Offizielle Basisdaten des LASV Brandenburg. Ergänzende Telefonnummern, E-Mail-Adressen und Websites können aus recherchierten Quellen stammen. Der jeweilige Prüfstatus wird im Profil ausgewiesen.</div>
             <div class="results-list" style="margin-top:16px">
                 @forelse($facilities as $facility)
                     @include('facilities._card', ['facility' => $facility])

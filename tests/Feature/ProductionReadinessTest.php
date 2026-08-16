@@ -13,7 +13,7 @@ class ProductionReadinessTest extends TestCase
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('href="'.asset('assets/styles.css').'?v=20260723-1"', false)
+            ->assertSee('href="'.asset('assets/styles.css').'?v=20260816-1"', false)
             ->assertSee('src="'.asset('assets/app.js').'?v=20260722-1"', false)
             ->assertSee('src="'.asset('logo-light.svg').'" alt="PflegeIndex" width="476" height="104"', false);
     }
@@ -31,6 +31,19 @@ class ProductionReadinessTest extends TestCase
         $this->assertStringContainsString('box-shadow: 0 0 0 6px var(--navy);', $stylesheet);
         $this->assertStringContainsString('.type-badge { color: #276f2e;', $stylesheet);
         $this->assertGreaterThanOrEqual(4.5, $this->contrastRatio('#276f2e', '#edf7ef'));
+    }
+
+    public function test_primary_call_to_action_colors_pass_wcag_aa_contrast(): void
+    {
+        $stylesheet = file_get_contents(public_path('assets/styles.css'));
+
+        $this->assertIsString($stylesheet);
+        $this->assertStringContainsString('--cta-green: #2f7d32;', $stylesheet);
+        $this->assertStringContainsString('--cta-green-hover: #286b2b;', $stylesheet);
+        $this->assertStringContainsString('background: var(--cta-green);', $stylesheet);
+        $this->assertStringContainsString('background: var(--cta-green-hover);', $stylesheet);
+        $this->assertGreaterThanOrEqual(4.5, $this->contrastRatio('#ffffff', '#2f7d32'));
+        $this->assertGreaterThanOrEqual(4.5, $this->contrastRatio('#ffffff', '#286b2b'));
     }
 
     public function test_apache_and_nginx_static_asset_cache_policies_are_present(): void
