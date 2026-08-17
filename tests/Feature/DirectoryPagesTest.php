@@ -86,6 +86,96 @@ class DirectoryPagesTest extends TestCase
         }
     }
 
+    public function test_same_name_facilities_in_one_city_use_address_discriminators_in_their_titles(): void
+    {
+        [$city, $firstFacility] = $this->createDirectoryEntry();
+        $firstFacility->update([
+            'name' => 'Pflegezentrum am Park',
+            'address' => 'Musterstraße 1',
+        ]);
+        $secondFacility = $this->createFacility(
+            $city,
+            'duplicate-title-second',
+            'Pflegezentrum am Park',
+            'pflegezentrum-am-park-zwei',
+            'Parkstraße 2',
+        );
+
+        $firstTitle = 'Pflegezentrum am Park, Musterstraße 1 in Potsdam – PflegeIndex';
+        $secondTitle = 'Pflegezentrum am Park, Parkstraße 2 in Potsdam – PflegeIndex';
+
+        $this->get(route('facilities.show', [$city, $firstFacility]))
+            ->assertOk()
+            ->assertSee('<title>'.$firstTitle.'</title>', false);
+        $this->get(route('facilities.show', [$city, $secondFacility]))
+            ->assertOk()
+            ->assertSee('<title>'.$secondTitle.'</title>', false);
+
+        $this->assertNotSame($firstTitle, $secondTitle);
+    }
+
+    public function test_duplicate_title_uses_type_when_the_address_is_shared(): void
+    {
+        [$city, $firstFacility] = $this->createDirectoryEntry();
+        $firstFacility->update([
+            'name' => 'Pflege und Tagespflege',
+            'address' => 'Musterstraße 1',
+            'type' => 'Ambulante Pflege',
+        ]);
+        $secondFacility = $this->createFacility(
+            $city,
+            'duplicate-title-shared-address',
+            'Pflege und Tagespflege',
+            'pflege-und-tagespflege-stationaer',
+            'Musterstraße 1',
+            'Stationäre/teilstationäre Pflege',
+        );
+
+        $this->get(route('facilities.show', [$city, $firstFacility]))
+            ->assertOk()
+            ->assertSee(
+                '<title>Pflege und Tagespflege, Musterstraße 1 · Ambulante Pflege in Potsdam – PflegeIndex</title>',
+                false,
+            );
+        $this->get(route('facilities.show', [$city, $secondFacility]))
+            ->assertOk()
+            ->assertSee(
+                '<title>Pflege und Tagespflege, Musterstraße 1 · Stationäre/teilstationäre Pflege in Potsdam – PflegeIndex</title>',
+                false,
+            );
+    }
+
+    public function test_duplicate_title_handles_an_incomplete_address_with_existing_postal_data(): void
+    {
+        [$city, $firstFacility] = $this->createDirectoryEntry();
+        $firstFacility->update([
+            'name' => 'Pflege ohne vollständige Anschrift',
+            'address' => '',
+            'postal_code' => '14467',
+        ]);
+        $secondFacility = $this->createFacility(
+            $city,
+            'duplicate-title-incomplete-address',
+            'Pflege ohne vollständige Anschrift',
+            'pflege-ohne-vollstaendige-anschrift-zwei',
+            '',
+        );
+        $secondFacility->update(['postal_code' => '14469']);
+
+        $this->get(route('facilities.show', [$city, $firstFacility]))
+            ->assertOk()
+            ->assertSee(
+                '<title>Pflege ohne vollständige Anschrift, 14467 in Potsdam – PflegeIndex</title>',
+                false,
+            );
+        $this->get(route('facilities.show', [$city, $secondFacility]))
+            ->assertOk()
+            ->assertSee(
+                '<title>Pflege ohne vollständige Anschrift, 14469 in Potsdam – PflegeIndex</title>',
+                false,
+            );
+    }
+
     public function test_facility_page_has_valid_local_business_structured_data(): void
     {
         [$city, $facility] = $this->createDirectoryEntry();

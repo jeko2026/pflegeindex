@@ -23,6 +23,12 @@
     @endpush
 @endif
 
+@push('head')
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
+@endpush
+
 @section('content')
     <section class="page-hero">
         <div class="container">

@@ -222,8 +222,40 @@ class DirectoryCorePageTest extends TestCase
             $response
                 ->assertSee('<title>'.$title.'</title>', false)
                 ->assertSee('<meta name="description" content="'.$description.'">', false)
-                ->assertSee('<link rel="canonical" href="'.$canonical.'">', false);
+                ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
+                ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+                ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+                ->assertSee('<meta property="og:url" content="'.$canonical.'">', false);
         }
+    }
+
+    public function test_filtered_directory_open_graph_follows_its_canonical_page(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam');
+
+        foreach (range(1, 25) as $number) {
+            $this->createFacility(
+                $city,
+                sprintf('Filter Einrichtung %02d', $number),
+                'Ambulante Pflege',
+            );
+        }
+
+        $canonical = route('directory.index', ['page' => 2]);
+
+        $this->get(route('directory.index', ['q' => 'Filter', 'page' => 2]))
+            ->assertOk()
+            ->assertSee('<meta name="robots" content="noindex,follow">', false)
+            ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
+            ->assertSee('<meta property="og:url" content="'.$canonical.'">', false)
+            ->assertSee(
+                '<meta property="og:title" content="Pflegeangebote finden – Seite 2 – PflegeIndex">',
+                false,
+            )
+            ->assertSee(
+                '<meta property="og:description" content="Seite 2 mit weiteren Pflegeangeboten in Brandenburg.">',
+                false,
+            );
     }
 
     public function test_directory_shows_the_existing_empty_state(): void

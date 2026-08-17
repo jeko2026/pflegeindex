@@ -93,7 +93,9 @@
 
     $pageTitle = $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
         ? 'Fährmann Pflege Angermünde: Leistungen, Tagespflege & Wohnen'
-        : "{$facility->name} in {$city->name} – PflegeIndex";
+        : (filled($titleDiscriminator)
+            ? "{$facility->name}, {$titleDiscriminator} in {$city->name} – PflegeIndex"
+            : "{$facility->name} in {$city->name} – PflegeIndex");
     $pageDescription = $cleanAndLimitDescription($rawDescription, 155);
 
     $mapQuery = rawurlencode("{$facility->name}, {$facility->address}, {$facility->postal_code} {$city->name}, Deutschland");
