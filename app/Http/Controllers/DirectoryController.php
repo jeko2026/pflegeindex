@@ -25,9 +25,9 @@ class DirectoryController extends Controller
         PflegeEntryRepository $repository,
         PflegeEntryPresenter $presenter,
     ): View {
-        $query = trim((string) $request->query('q', ''));
-        $type = trim((string) $request->query('type', ''));
-        $citySlug = trim((string) $request->query('city', ''));
+        $query = $this->stringQuery($request, 'q');
+        $type = $this->stringQuery($request, 'type');
+        $citySlug = $this->stringQuery($request, 'city');
         $page = $this->publicPage($request);
         $hasFilterParameters = collect($request->query())
             ->except('page')
@@ -49,7 +49,11 @@ class DirectoryController extends Controller
             currentPage: $listingResult->currentPage,
             options: ['path' => $request->url()],
         );
-        $facilities->withQueryString();
+        $facilities->appends(array_filter([
+            'q' => $query,
+            'city' => $citySlug,
+            'type' => $type,
+        ], static fn (string $value): bool => $value !== ''));
 
         return view('directory.index', [
             'facilities' => $facilities,
@@ -61,5 +65,12 @@ class DirectoryController extends Controller
             'totalCount' => Facility::count(),
             'hasFilterParameters' => $hasFilterParameters,
         ]);
+    }
+
+    private function stringQuery(Request $request, string $key): string
+    {
+        $value = $request->query($key, '');
+
+        return is_string($value) ? trim($value) : '';
     }
 }

@@ -157,6 +157,57 @@ class DirectoryCorePageTest extends TestCase
         $this->assertSame($facility->name, $withEmptyParameters->items()[0]->name);
     }
 
+    public function test_malformed_filter_arrays_are_ignored_without_leaking_into_html_or_pagination(): void
+    {
+        $city = $this->createCity('Potsdam', 'potsdam');
+
+        foreach (range(1, 25) as $number) {
+            $this->createFacility(
+                $city,
+                sprintf('Pflege Potsdam %02d', $number),
+                'Ambulante Pflege',
+            );
+        }
+
+        foreach ([
+            ['q' => ['test']],
+            ['type' => ['Ambulante Pflege']],
+            ['city' => ['cottbus']],
+            ['q' => ['nested' => ['test']]],
+        ] as $parameters) {
+            $response = $this->get(route('directory.index', $parameters))->assertOk();
+            $paginator = $this->paginator($response);
+            $nextPageUrl = $paginator->nextPageUrl();
+
+            $response
+                ->assertSee('<meta name="robots" content="noindex,follow">', false)
+                ->assertDontSee('Array');
+            $this->assertSame(25, $paginator->total());
+            $this->assertNotNull($nextPageUrl);
+            $this->assertSame(['page' => '2'], $this->queryParameters($nextPageUrl));
+        }
+    }
+
+    public function test_scalar_filter_still_applies_when_another_filter_is_a_malformed_array(): void
+    {
+        $potsdam = $this->createCity('Potsdam', 'potsdam');
+        $calau = $this->createCity('Calau', 'calau');
+        $matching = $this->createFacility($potsdam, 'Park Pflege Potsdam', 'Ambulante Pflege');
+        $other = $this->createFacility($calau, 'Park Pflege Calau', 'Ambulante Pflege');
+
+        $response = $this->get(route('directory.index', [
+            'q' => 'Potsdam',
+            'type' => ['nested' => ['Ambulante Pflege']],
+        ]))->assertOk();
+        $paginator = $this->paginator($response);
+
+        $response
+            ->assertSee($matching->name)
+            ->assertDontSee($other->name)
+            ->assertDontSee('Array');
+        $this->assertSame(1, $paginator->total());
+    }
+
     public function test_directory_paginates_by_24_stably_and_preserves_filters_in_links(): void
     {
         $city = $this->createCity('Potsdam', 'potsdam');
@@ -329,6 +380,14 @@ class DirectoryCorePageTest extends TestCase
         $this->assertInstanceOf(LengthAwarePaginator::class, $paginator);
 
         return $paginator;
+    }
+
+    /** @return array<string, string> */
+    private function queryParameters(string $url): array
+    {
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $parameters);
+
+        return $parameters;
     }
 
     private function createCity(string $name, string $slug): City
