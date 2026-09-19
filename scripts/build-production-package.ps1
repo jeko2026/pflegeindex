@@ -20,6 +20,62 @@ function Write-Utf8NoBom {
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
+function Get-Sha256Hex {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path
+    )
+
+    $resolved = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
+    if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+        throw "SHA-256 target is not a file: $Path"
+    }
+
+    $stream = $null
+    $sha = $null
+
+    try {
+        $stream = [System.IO.File]::Open(
+            $resolved,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::Read
+        )
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $bytes = $sha.ComputeHash($stream)
+
+        return ([System.BitConverter]::ToString($bytes)).Replace('-', '')
+    } finally {
+        if ($sha -ne $null) {
+            $sha.Dispose()
+        }
+        if ($stream -ne $null) {
+            $stream.Dispose()
+        }
+    }
+}
+
+function Test-Sha256Helper {
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ('pflegeindex-sha256-' + [guid]::NewGuid().ToString('N') + '.txt')
+
+    try {
+        Write-Utf8NoBom -Path $path -Content 'pflegeindex-sha256-self-test'
+        $first = Get-Sha256Hex -Path $path
+        $second = Get-Sha256Hex -Path $path
+
+        if ($first -notmatch '^[A-F0-9]{64}$') {
+            throw 'SHA-256 helper did not return 64 uppercase hexadecimal characters.'
+        }
+        if ($first -ne $second) {
+            throw 'SHA-256 helper returned a non-reproducible checksum.'
+        }
+    } finally {
+        if (Test-Path -LiteralPath $path) {
+            Remove-Item -LiteralPath $path -Force
+        }
+    }
+}
+
 function Get-RelativePackagePath {
     param([string] $Root, [string] $Path)
 
@@ -478,7 +534,7 @@ function New-ChecksumManifest {
         Sort-Object FullName
     $lines = foreach ($file in $files) {
         $relative = Get-RelativePackagePath -Root $PackageRoot -Path $file.FullName
-        $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $hash = (Get-Sha256Hex -Path $file.FullName).ToLowerInvariant()
         "$hash  $relative"
     }
 
@@ -497,7 +553,7 @@ function Test-ChecksumManifest {
         $expected = $Matches[1]
         $relative = $Matches[2]
         $target = Join-Path $PackageRoot ($relative.Replace('/', '\'))
-        $actual = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = (Get-Sha256Hex -Path $target).ToLowerInvariant()
 
         if ($actual -ne $expected) {
             throw "Checksum verification failed: $relative"
@@ -766,6 +822,7 @@ function Invoke-ProductionBuild {
     param([string] $Commit, [string] $ShortCommit, [string] $Ref)
 
     New-Item -ItemType Directory -Path $buildBase -Force | Out-Null
+    Test-Sha256Helper
     $initialStatus = @(& git -C $repoRoot status --porcelain=v1)
     $workRoot = Join-Path $buildBase ('.work-' + $ShortCommit + '-' + [guid]::NewGuid().ToString('N'))
     $script:temporaryRoot = $workRoot
@@ -786,7 +843,7 @@ function Invoke-ProductionBuild {
     Test-ProductionIndex -Path (Join-Path $stagingRoot 'public-webroot\index.php')
     Test-ProductionHtaccess -Path (Join-Path $stagingRoot 'public-webroot\.htaccess')
 
-    $lockHash = (Get-FileHash -LiteralPath (Join-Path $sourceRoot 'composer.lock') -Algorithm SHA256).Hash.ToLowerInvariant()
+    $lockHash = (Get-Sha256Hex -Path (Join-Path $sourceRoot 'composer.lock')).ToLowerInvariant()
     $lock = Get-Content -Raw -Encoding UTF8 (Join-Path $sourceRoot 'composer.lock') | ConvertFrom-Json
     $laravelVersion = ($lock.packages | Where-Object { $_.name -eq 'laravel/framework' } | Select-Object -First 1).version
     $buildDate = [DateTime]::UtcNow.ToString('o')
