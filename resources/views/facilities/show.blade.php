@@ -206,6 +206,9 @@
     </section>
     <div class="container detail-layout">
         <div class="detail-main">
+            @foreach($carePageLinks as $carePageLink)
+                <p><a href="{{ $carePageLink['url'] }}">{{ $carePageLink['backlink'] }} in {{ $city->name }}</a></p>
+            @endforeach
             <div class="detail-heading">
                 <div><span class="type-badge">{{ $facility->type }}</span><span class="source-badge">Amtliche Grunddaten</span></div>
                 <h1>{{ $facility->name }}</h1>

@@ -128,6 +128,7 @@ class ImportFacilities extends Command
             ->keyBy('source_id');
         $sourceIds = [];
         $facilityRows = [];
+        $classificationOverrides = config('facility_classification_overrides', []);
 
         foreach ($records as $record) {
             $sourceId = (string) ($record['id'] ?? '');
@@ -138,6 +139,7 @@ class ImportFacilities extends Command
             }
 
             $sourceIds[] = $sourceId;
+            $classification = $classificationOverrides[$sourceId] ?? [];
             $lockedContact = $lockedContacts->get($sourceId);
             $facilityRows[] = [
                 'source_id' => $sourceId,
@@ -148,7 +150,7 @@ class ImportFacilities extends Command
                 'street' => $record['street'] ?? null,
                 'house_number' => $record['houseNumber'] ?? null,
                 'address' => (string) ($record['address'] ?? ''),
-                'type' => (string) ($record['type'] ?? ''),
+                'type' => (string) ($classification['type'] ?? ($record['type'] ?? '')),
                 'source_sector' => $record['sourceSector'] ?? null,
                 'description' => $manualDescriptions->get($sourceId) ?? ($record['description'] ?? null),
                 'phone' => $lockedContact !== null ? $lockedContact->phone : ($record['phone'] ?? null),
@@ -160,7 +162,7 @@ class ImportFacilities extends Command
                     ? $lockedContact->contact_checked_at?->format('Y-m-d H:i:s')
                     : $this->dateOrNull($record['contactCheckedAt'] ?? null),
                 'contact_locked' => $lockedContact !== null || (bool) ($record['contactLocked'] ?? false),
-                'care_types' => json_encode($record['careTypes'] ?? [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                'care_types' => json_encode($classification['care_types'] ?? ($record['careTypes'] ?? []), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'features' => json_encode($record['features'] ?? [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'created_at' => $now,
                 'updated_at' => $now,

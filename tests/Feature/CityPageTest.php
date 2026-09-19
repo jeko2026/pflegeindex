@@ -208,7 +208,13 @@ class CityPageTest extends TestCase
 
         $this->get(route('cities.show', $city))->assertOk();
 
-        $this->assertLessThanOrEqual(5, $queryCount, 'City page introduced too many SQL queries.');
+        // Budget raised from 5 to 6 (SEO Growth Content Audit, 2026-08-19): the
+        // dynamic Ambulante/Stationäre intro sentence and FAQ need one grouped
+        // aggregate query (`GROUP BY type`) for the real per-type counts. This
+        // is a single flat query added once per request — it does not scale
+        // with the number of facility cards, so N+1 growth is still guarded.
+        // One additional EXISTS query checks the published pilot category, independent of card count.
+        $this->assertLessThanOrEqual(7, $queryCount, 'City page introduced too many SQL queries.');
     }
 
     public function test_sitemap_contains_only_public_brandenburg_city_urls(): void

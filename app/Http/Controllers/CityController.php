@@ -11,12 +11,13 @@ use App\Platform\DirectoryCore\Domain\PaginationOptions;
 use App\Platform\DirectoryCore\ReadModel\ListingCriteria;
 use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
 use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryPresenter;
+use App\Services\CarePageService;
 use App\Services\QualityScoreService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\View\View;
 
 class CityController extends Controller
 {
@@ -28,6 +29,7 @@ class CityController extends Controller
         PflegeEntryRepository $repository,
         PflegeEntryPresenter $presenter,
         QualityScoreService $qualityScoreService,
+        CarePageService $carePages,
     ): View {
         $stateSlug = (string) $request->route('stateSlug');
 
@@ -82,6 +84,8 @@ class CityController extends Controller
             }
         }
 
-        return view('cities.show', compact('city', 'facilities', 'facilityCount', 'typeCount', 'nearbyCities', 'qualityStats'));
+        $carePageLinks = $carePages->links($city);
+
+        return view('cities.show', compact('carePageLinks', 'city', 'facilities', 'facilityCount', 'typeCount', 'nearbyCities', 'qualityStats'));
     }
 }

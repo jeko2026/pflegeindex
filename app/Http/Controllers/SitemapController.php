@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Models\Facility;
 use App\Models\GeoDistrict;
+use App\Services\CarePageService;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\Response;
 
 class SitemapController extends Controller
 {
-    public function sitemap(): Response
+    public function sitemap(CarePageService $carePages): Response
     {
         $cities = City::query()
             ->select(['id', 'name', 'slug', 'updated_at'])
@@ -48,6 +49,8 @@ class SitemapController extends Controller
             ['loc' => route('lexicon.index'), 'changefreq' => 'monthly', 'priority' => '0.8'],
             ['loc' => route('pages.about'), 'changefreq' => 'monthly', 'priority' => '0.5'],
         ];
+
+        $staticPages = [...$staticPages, ...$carePages->sitemapPages()];
 
         return response()
             ->view('seo.sitemap', compact('cities', 'districts', 'staticPages', 'lastModified', 'lexiconTerms'), 200, [

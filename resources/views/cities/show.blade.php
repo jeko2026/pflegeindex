@@ -91,6 +91,15 @@
     </section>
     <section class="section">
         <div class="container">
+            @if(count($carePageLinks) > 0)
+                <nav aria-label="Pflegearten in {{ $city->name }}">
+                    <ul>
+                        @foreach($carePageLinks as $carePageLink)
+                            <li><a href="{{ $carePageLink['url'] }}">{{ $carePageLink['label'] }}</a></li>
+                        @endforeach
+                    </ul>
+                </nav>
+            @endif
             <div class="region-summary">
                 <div><strong>{{ number_format($facilityCount, 0, ',', '.') }}</strong><span>Einrichtungen</span></div>
                 <div><strong>{{ $typeCount }}</strong><span>Einrichtungsarten</span></div>

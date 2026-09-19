@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Facility;
+use App\Services\CarePageService;
 use App\Services\QualityScoreService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\View\View;
 
 class FacilityController extends Controller
 {
-    public function show(City $city, Facility $facility, QualityScoreService $qualityScoreService): View
+    public function show(City $city, Facility $facility, QualityScoreService $qualityScoreService, CarePageService $carePages): View
     {
         $relatedFacilities = Facility::query()
             ->with('city')
@@ -24,6 +25,7 @@ class FacilityController extends Controller
 
         return view('facilities.show', [
             'city' => $city,
+            'carePageLinks' => $carePages->links($city, $facility),
             'facility' => $facility,
             'relatedFacilities' => $relatedFacilities,
             'qualityScore' => $qualityScoreService->evaluate($facility),
