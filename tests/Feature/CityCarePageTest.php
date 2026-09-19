@@ -134,6 +134,43 @@ class CityCarePageTest extends TestCase
         $this->assertEqualsCanonicalizing([$explicit->id, $name->id, $careType->id], app(CarePageService::class)->facilities($city, 'tagespflege')->pluck('id')->all());
     }
 
+    public function test_city_care_queries_use_quoted_json_text_matching_without_json1_functions(): void
+    {
+        $potsdam = $this->city('Potsdam', 'potsdam');
+        $ambulant = $this->facility($potsdam, 'Ambulanter Dienst', 'Ambulante Pflege');
+        $potsdamNull = $this->facility($potsdam, 'Unklare Einrichtung', 'Stationäre/teilstationäre Pflege');
+        $potsdamNull->update(['care_types' => null]);
+
+        $cottbus = $this->city('Cottbus', 'cottbus');
+        $structuredDayCare = $this->facility($cottbus, 'Tagespflege strukturiert', 'Stationäre/teilstationäre Pflege');
+        $structuredDayCare->update(['care_types' => ['Tagespflege']]);
+        $cottbusNull = $this->facility($cottbus, 'Unklare Einrichtung', 'Stationäre/teilstationäre Pflege');
+        $cottbusNull->update(['care_types' => null]);
+
+        $frankfurt = $this->city('Frankfurt (Oder)', 'frankfurt-oder');
+        $home = $this->facility($frankfurt, 'Seniorenzentrum Beispiel', 'Stationäre/teilstationäre Pflege');
+        $home->update(['care_types' => null]);
+        $dayCare = $this->facility($frankfurt, 'Seniorenzentrum Tagesangebot', 'Stationäre/teilstationäre Pflege');
+        $dayCare->update(['care_types' => ['Tagespflege']]);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        try {
+            $service = app(CarePageService::class);
+            $this->assertSame([$ambulant->id], $service->facilities($potsdam, 'ambulante-pflegedienste')->pluck('id')->all());
+            $this->assertSame([$structuredDayCare->id], $service->facilities($cottbus, 'tagespflege')->pluck('id')->all());
+            $this->assertContains($home->id, $service->facilities($frankfurt, 'pflegeheime')->pluck('id')->all());
+            $this->assertNotContains($dayCare->id, $service->facilities($frankfurt, 'pflegeheime')->pluck('id')->all());
+
+            $queries = strtolower(implode("\n", array_column(DB::getQueryLog(), 'query')));
+            $this->assertStringNotContainsString('json_', $queries);
+            $this->assertStringContainsString('care_types" like ?', $queries);
+            $this->assertStringContainsString('care_types" is null', $queries);
+        } finally {
+            DB::disableQueryLog();
+        }
+    }
+
     public function test_card_queries_do_not_grow_with_facility_count(): void
     {
         $city = $this->city('Potsdam', 'potsdam');

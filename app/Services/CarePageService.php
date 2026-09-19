@@ -38,7 +38,7 @@ class CarePageService
                     ->where(function (Builder $specific) use ($category): void {
                         $specific->whereRaw('1 = 0');
                         foreach ($category['types'] as $type) {
-                            $specific->orWhereJsonContains('care_types', $type);
+                            $this->whereCareTypeContains($specific, $type);
                         }
                         foreach ($category['name_markers'] as $marker) {
                             $specific->orWhere('name', 'like', '%'.$marker.'%');
@@ -49,10 +49,35 @@ class CarePageService
                     foreach (['tagespflege', 'tages- und nachtpflege', 'nachtpflege', 'kurzzeitpflege', 'wohngruppe', 'wohngemeinschaft', 'betreutes wohnen'] as $excluded) {
                         $broad->where('name', 'not like', '%'.$excluded.'%');
                     }
-                    $broad->whereJsonDoesntContain('care_types', 'Tagespflege');
+                    $this->whereCareTypeDoesNotContain($broad, 'Tagespflege');
                 }
             });
         });
+    }
+
+    /**
+     * care_types is stored as a JSON array in a TEXT column. This quoted match
+     * avoids SQLite JSON1 so legacy production SQLite installations remain supported.
+     */
+    private function whereCareTypeContains(Builder $query, string $careType): void
+    {
+        $query->orWhere('care_types', 'like', '%'.$this->jsonString($careType).'%');
+    }
+
+    /**
+     * A missing care_types value does not contain the excluded care type.
+     */
+    private function whereCareTypeDoesNotContain(Builder $query, string $careType): void
+    {
+        $query->where(function (Builder $condition) use ($careType): void {
+            $condition->whereNull('care_types')
+                ->orWhere('care_types', 'not like', '%'.$this->jsonString($careType).'%');
+        });
+    }
+
+    private function jsonString(string $value): string
+    {
+        return json_encode($value, JSON_THROW_ON_ERROR);
     }
 
     public function links(City $city, ?Facility $facility = null): array
