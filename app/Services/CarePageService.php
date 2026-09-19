@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\City;
 use App\Models\Facility;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class CarePageService
 {
@@ -100,6 +101,17 @@ class CarePageService
         return $links;
     }
 
+    private function sitemapLastModified(City $city, string $slug): ?Carbon
+    {
+        $facilityLastModified = $this->facilities($city, $slug)->max('updated_at');
+        $lastModified = collect([$city->updated_at, $facilityLastModified])
+            ->filter()
+            ->map(fn ($timestamp) => Carbon::parse($timestamp))
+            ->max();
+
+        return $lastModified instanceof Carbon ? $lastModified : null;
+    }
+
     public function sitemapPages(): array
     {
         $pages = [];
@@ -107,7 +119,12 @@ class CarePageService
             ->whereIn('slug', array_keys(config('care_pages.pilots', [])))->get();
         foreach ($cities as $city) {
             foreach ($this->links($city) as $link) {
-                $pages[] = ['loc' => $link['url'], 'changefreq' => 'weekly', 'priority' => '0.8'];
+                $pages[] = [
+                    'loc' => $link['url'],
+                    'lastmod' => $this->sitemapLastModified($city, $link['slug']),
+                    'changefreq' => 'weekly',
+                    'priority' => '0.8',
+                ];
             }
         }
 

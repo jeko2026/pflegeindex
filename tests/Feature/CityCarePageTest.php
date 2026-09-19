@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Facility;
 use App\Services\CarePageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -108,6 +109,43 @@ class CityCarePageTest extends TestCase
         }
         $this->assertNotFalse(simplexml_load_string($sitemap->getContent()));
         $this->get('/robots.txt')->assertOk()->assertSee('Allow: /');
+    }
+
+    public function test_city_care_sitemap_lastmod_tracks_matching_data_stably(): void
+    {
+        $pages = [
+            ['Potsdam', 'potsdam', 'ambulante-pflegedienste', 'Ambulante Pflege', 'Pflegedienst Potsdam', '2026-08-21 10:00:00'],
+            ['Neuruppin', 'neuruppin', 'ambulante-pflegedienste', 'Ambulante Pflege', 'Pflegedienst Neuruppin', '2026-08-22 10:00:00'],
+            ['Falkensee', 'falkensee', 'tagespflege', 'Stationäre/teilstationäre Pflege', 'Tagespflege Falkensee', '2026-08-23 10:00:00'],
+            ['Frankfurt (Oder)', 'frankfurt-oder', 'pflegeheime', 'Stationäre/teilstationäre Pflege', 'Seniorenheim Frankfurt', '2026-08-24 10:00:00'],
+            ['Cottbus', 'cottbus', 'tagespflege', 'Stationäre/teilstationäre Pflege', 'Tagespflege Cottbus', '2026-08-25 10:00:00'],
+        ];
+        $expected = [];
+
+        foreach ($pages as [$name, $slug, $category, $type, $facilityName, $facilityUpdatedAt]) {
+            $city = $this->city($name, $slug);
+            $facility = $this->facility($city, $facilityName, $type);
+            DB::table('facilities')->where('id', $facility->id)->update(['updated_at' => $facilityUpdatedAt]);
+            $excluded = $this->facility($city, 'Unpassende Einrichtung', 'Krankenhaus');
+            DB::table('facilities')->where('id', $excluded->id)->update(['updated_at' => '2026-09-01 10:00:00']);
+            DB::table('cities')->where('id', $city->id)->update(['updated_at' => '2026-08-01 10:00:00']);
+
+            $expected[route('cities.care.show', [$city, $category])] = Carbon::parse($facilityUpdatedAt)->toAtomString();
+        }
+
+        $sitemapPages = collect(app(CarePageService::class)->sitemapPages())->keyBy('loc');
+        foreach ($expected as $url => $lastmod) {
+            $this->assertSame($lastmod, $sitemapPages[$url]['lastmod']->toAtomString());
+        }
+
+        $firstSitemap = $this->get('/sitemap.xml')->assertOk()->getContent();
+        $secondSitemap = $this->get('/sitemap.xml')->assertOk()->getContent();
+
+        foreach ($expected as $url => $lastmod) {
+            $this->assertSame($lastmod, $this->sitemapLastmod($firstSitemap, $url));
+            $this->assertSame($lastmod, $this->sitemapLastmod($secondSitemap, $url));
+            $this->assertNotSame('2026-07-17T09:43:50+02:00', $lastmod);
+        }
     }
 
     public function test_broad_sector_is_not_assumed_to_be_a_nursing_home(): void
@@ -237,6 +275,19 @@ class CityCarePageTest extends TestCase
         $cottbus = City::query()->where('slug', 'cottbus')->firstOrFail();
         $this->assertCount(1, app(CarePageService::class)->facilities($frankfurt, 'pflegeheime')->get());
         $this->assertCount(1, app(CarePageService::class)->facilities($cottbus, 'tagespflege')->get());
+    }
+
+    private function sitemapLastmod(string $xml, string $url): string
+    {
+        $matched = preg_match(
+            '#<url>\s*<loc>'.preg_quote($url, '#').'</loc>\s*<lastmod>([^<]+)</lastmod>#s',
+            $xml,
+            $matches,
+        );
+
+        $this->assertSame(1, $matched, 'Sitemap URL and lastmod were not found: '.$url);
+
+        return $matches[1];
     }
 
     /** @return array<string, mixed> */

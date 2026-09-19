@@ -3,7 +3,10 @@
 @foreach ($staticPages as $page)
     <url>
         <loc>{{ $page['loc'] }}</loc>
-        @if ($lastModified)<lastmod>{{ \Illuminate\Support\Carbon::parse($lastModified)->toAtomString() }}</lastmod>@endif
+        @php
+            $pageLastModified = $page['lastmod'] ?? $lastModified;
+        @endphp
+        @if ($pageLastModified)<lastmod>{{ \Illuminate\Support\Carbon::parse($pageLastModified)->toAtomString() }}</lastmod>@endif
         <changefreq>{{ $page['changefreq'] }}</changefreq>
         <priority>{{ $page['priority'] }}</priority>
     </url>
