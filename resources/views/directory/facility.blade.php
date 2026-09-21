@@ -1,6 +1,26 @@
 @extends('layouts.app')
 
 @php
+    $directoryConfig = array_merge([
+        'landUrl' => route('region.show'),
+        'cityRoute' => 'cities.show',
+        'facilityRoute' => 'facilities.show',
+        'sourceLabel' => 'Amtliche Grunddaten',
+        'sourceFooter' => 'Quelle: LASV Brandenburg · Stand 31.12.2025',
+        'sourceNotice' => 'Amtliche Grunddaten: Landesamt für Soziales und Versorgung Brandenburg, Stand 31.12.2025. Veröffentlicht unter Datenlizenz Deutschland – Zero – Version 2.0.',
+        'sourceExplanation' => 'Die amtlichen Grunddaten stammen vom LASV; Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.',
+        'sectorMap' => [
+            'Ambulante Pflegeeinrichtung' => 'eine ambulante Pflegeeinrichtung',
+            'Stationäre/teilstationäre Pflegeeinrichtung' => 'eine stationäre oder teilstationäre Pflegeeinrichtung',
+            'Krankenhaus' => 'ein Krankenhaus',
+        ],
+        'sectorStatement' => 'ist :sector im amtlichen Einrichtungsverzeichnis des Landes Brandenburg.',
+        'sourceStatement' => 'ist als „:type“ im amtlichen Einrichtungsverzeichnis des Landes Brandenburg geführt.',
+        'addressFromRecord' => false,
+        'showQuality' => true,
+        'showSocial' => true,
+        'showOpeningHours' => true,
+    ], $config ?? []);
     $editorialView = $facility->source_id === 'faehrmann-pflege-gmbh-16278-ade0d833b0'
         ? 'facilities.editorial.faehrmann-pflege-gmbh-16278'
         : null;
@@ -8,7 +28,7 @@
     $displayEmail = \App\Support\PublicContact::email($facility->email);
     $displayWebsite = $editorialView ? 'https://faehrmann-pflege.de/' : \App\Support\PublicContact::website($facility->website);
     $hasDirectContact = filled($displayPhone) || filled($displayEmail) || filled($displayWebsite);
-    $canonicalUrl = route('facilities.show', [$city, $facility]);
+    $canonicalUrl = route($directoryConfig['facilityRoute'], [$city, $facility]);
 
     // Build rawDescription for SEO
     $rawDescription = '';
@@ -17,18 +37,13 @@
     } elseif (filled($facility->description)) {
         $rawDescription = $facility->description;
     } else {
-        $sectorMap = [
-            'Ambulante Pflegeeinrichtung' => 'eine ambulante Pflegeeinrichtung',
-            'Stationäre/teilstationäre Pflegeeinrichtung' => 'eine stationäre oder teilstationäre Pflegeeinrichtung',
-            'Krankenhaus' => 'ein Krankenhaus',
-        ];
         $fallbackParts = [];
         $fallbackParts[] = "{$facility->name} in {$city->name}";
 
-        if (filled($facility->source_sector) && isset($sectorMap[$facility->source_sector])) {
-            $fallbackParts[] = "ist {$sectorMap[$facility->source_sector]} im amtlichen Einrichtungsverzeichnis des Landes Brandenburg.";
+        if (filled($facility->source_sector) && isset($directoryConfig['sectorMap'][$facility->source_sector])) {
+            $fallbackParts[] = str_replace(':sector', $directoryConfig['sectorMap'][$facility->source_sector], $directoryConfig['sectorStatement']);
         } else {
-            $fallbackParts[] = "ist als „{$facility->type}“ im amtlichen Einrichtungsverzeichnis des Landes Brandenburg geführt.";
+            $fallbackParts[] = str_replace(':type', $facility->type, $directoryConfig['sourceStatement']);
         }
 
         if (!empty($facility->care_types)) {
@@ -144,7 +159,7 @@
                 'streetAddress' => $facility->address,
                 'postalCode' => $facility->postal_code,
                 'addressLocality' => $city->name,
-                'addressRegion' => 'Brandenburg',
+                'addressRegion' => $city->state,
                 'addressCountry' => 'DE',
             ],
         ], fn ($value) => $value !== null);
@@ -165,13 +180,13 @@
                             '@type' => 'ListItem',
                             'position' => 2,
                             'name' => $city->state,
-                            'item' => route('region.show'),
+                            'item' => $directoryConfig['landUrl'],
                         ],
                         [
                             '@type' => 'ListItem',
                             'position' => 3,
                             'name' => $city->name,
-                            'item' => route('cities.show', $city),
+                            'item' => route($directoryConfig['cityRoute'], $city),
                         ],
                         [
                             '@type' => 'ListItem',
@@ -193,11 +208,11 @@
             <nav aria-label="Breadcrumb">
                 <ol class="breadcrumbs" style="margin:0">
                     <li><a href="{{ route('home') }}">Startseite</a></li>
-                    <li><span aria-hidden="true">›</span><a href="{{ route('region.show') }}">{{ $city->state }}</a></li>
+                    <li><span aria-hidden="true">›</span><a href="{{ $directoryConfig['landUrl'] }}">{{ $city->state }}</a></li>
                     @if($city->geoMunicipality?->district)
                         <li><span aria-hidden="true">›</span><a href="{{ route('districts.show', $city->geoMunicipality->district->slug) }}">{{ $city->geoMunicipality->district->display_name }}</a></li>
                     @endif
-                    <li><span aria-hidden="true">›</span><a href="{{ route('cities.show', $city) }}">{{ $city->name }}</a></li>
+                    <li><span aria-hidden="true">›</span><a href="{{ route($directoryConfig['cityRoute'], $city) }}">{{ $city->name }}</a></li>
                     <li aria-current="page"><span aria-hidden="true">›</span><span>{{ $facility->name }}</span></li>
                 </ol>
             </nav>
@@ -210,7 +225,7 @@
                 <p><a href="{{ $carePageLink['url'] }}">{{ $carePageLink['backlink'] }} in {{ $city->name }}</a></p>
             @endforeach
             <div class="detail-heading">
-                <div><span class="type-badge">{{ $facility->type }}</span><span class="source-badge">Amtliche Grunddaten</span></div>
+                <div><span class="type-badge">{{ $facility->type }}</span><span class="source-badge">{{ $directoryConfig['sourceLabel'] }}</span></div>
                 <h1>{{ $facility->name }}</h1>
                 <p class="detail-address"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg> {{ $facility->address }}, {{ $facility->postal_code }} {{ $city->name }}</p>
                 @if($hasDirectContact)
@@ -229,17 +244,10 @@
                     <p>{!! $formatDescription($facility->description) !!}</p>
                 @else
                     <p>
-                        @php
-                            $sectorMap = [
-                                'Ambulante Pflegeeinrichtung' => 'eine ambulante Pflegeeinrichtung',
-                                'Stationäre/teilstationäre Pflegeeinrichtung' => 'eine stationäre oder teilstationäre Pflegeeinrichtung',
-                                'Krankenhaus' => 'ein Krankenhaus',
-                            ];
-                        @endphp
-                        @if(filled($facility->source_sector) && isset($sectorMap[$facility->source_sector]))
-                            {{ $facility->name }} in {{ $city->name }} ist {{ $sectorMap[$facility->source_sector] }} im amtlichen Einrichtungsverzeichnis des Landes Brandenburg.
+                        @if(filled($facility->source_sector) && isset($directoryConfig['sectorMap'][$facility->source_sector]))
+                            {{ $facility->name }} in {{ $city->name }}{{ str_replace(':sector', $directoryConfig['sectorMap'][$facility->source_sector], $directoryConfig['sectorStatement']) }}
                         @else
-                            {{ $facility->name }} in {{ $city->name }} ist als „{{ $facility->type }}“ im amtlichen Einrichtungsverzeichnis des Landes Brandenburg geführt.
+                            {{ $facility->name }} in {{ $city->name }}{{ str_replace(':type', $facility->type, $directoryConfig['sourceStatement']) }}
                         @endif
 
                         @if(!empty($facility->care_types))
@@ -260,15 +268,21 @@
                         <small>Geprüft am {{ $facility->description_checked_at->format('d.m.Y') }}</small>
                     </div>
                 @endif
-                <div class="notice notice--compact"><strong>Amtliche Grunddaten:</strong> Landesamt für Soziales und Versorgung Brandenburg, Stand 31.12.2025. Veröffentlicht unter Datenlizenz Deutschland – Zero – Version 2.0.</div>
+                <div class="notice notice--compact">{{ $directoryConfig['sourceNotice'] }}</div>
             </section>
             <section class="detail-section"><h2>Einrichtungsart</h2><div class="check-grid">@foreach($facility->care_types ?? [$facility->type] as $careType)<span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>{{ $careType }}</span>@endforeach</div></section>
             @include('facilities._content')
-            @include('directory._opening-hours', ['openingHours' => $profile['openingHours'] ?? []])
-            @include('directory._social-links', ['socialLinks' => $profile['socialLinks'] ?? []])
-            @include('facilities._trust', ['qualityScore' => $qualityScore])
-            @include('facilities._quality-score', ['qualityScore' => $qualityScore])
-            <p class="source-explanation">Die amtlichen Grunddaten stammen vom LASV; Kontaktdaten und Beschreibungen können redaktionell ergänzt sein.</p>
+            @if($directoryConfig['showOpeningHours'])
+                @include('directory._opening-hours', ['openingHours' => $profile['openingHours'] ?? []])
+            @endif
+            @if($directoryConfig['showSocial'])
+                @include('directory._social-links', ['socialLinks' => $profile['socialLinks'] ?? []])
+            @endif
+            @if($directoryConfig['showQuality'])
+                @include('facilities._trust', ['qualityScore' => $qualityScore])
+                @include('facilities._quality-score', ['qualityScore' => $qualityScore])
+            @endif
+            <p class="source-explanation">{{ $directoryConfig['sourceExplanation'] }}</p>
         </div>
         <aside class="contact-card">
             <span class="contact-card__label">Kontakt</span>
@@ -302,10 +316,10 @@
                 </div>
                 <div class="results-list">
                     @foreach($relatedFacilities as $relatedFacility)
-                        @include('facilities._card', ['facility' => $relatedFacility])
+                        @include('directory._facility-card', ['facility' => $relatedFacility, 'city' => $city, 'config' => $directoryConfig])
                     @endforeach
                 </div>
-                <p style="margin:24px 0 0"><a class="text-link" href="{{ route('cities.show', $city) }}">Alle Pflegeeinrichtungen in {{ $city->name }} ansehen</a></p>
+                <p style="margin:24px 0 0"><a class="text-link" href="{{ route($directoryConfig['cityRoute'], $city) }}">Alle Pflegeeinrichtungen in {{ $city->name }} ansehen</a></p>
             </div>
         </section>
     @endif
