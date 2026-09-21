@@ -13,6 +13,7 @@ use App\Projects\PflegeIndex\Directory\PflegeEntryRepository;
 use App\Projects\PflegeIndex\Directory\Presentation\PflegeEntryPresenter;
 use App\Services\CarePageService;
 use App\Services\QualityScoreService;
+use App\Services\SeoActionContent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -85,7 +86,8 @@ class CityController extends Controller
         }
 
         $carePageLinks = $carePages->links($city);
+        $seoAction = app(SeoActionContent::class)->city($city, $facilityCount);
 
-        return view('cities.show', compact('carePageLinks', 'city', 'facilities', 'facilityCount', 'typeCount', 'nearbyCities', 'qualityStats'));
+        return view('cities.show', compact('seoAction', 'carePageLinks', 'city', 'facilities', 'facilityCount', 'typeCount', 'nearbyCities', 'qualityStats'));
     }
 }

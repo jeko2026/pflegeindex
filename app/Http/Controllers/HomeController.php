@@ -23,7 +23,9 @@ class HomeController extends Controller
     {
         $facilityCount = Cache::remember('home_facility_count', 86400, fn () => Facility::count());
         $cityCount = Cache::remember('home_city_count', 86400, fn () => City::count());
-        $topCities = Cache::remember('home_top_cities', 86400, fn () => City::query()
+        $brandenburgFacilityCount = Cache::remember('home_brandenburg_facility_count_v2', 86400, fn () => Facility::whereHas('city', fn ($query) => $query->where('state_slug', 'brandenburg'))->where('is_active', true)->count());
+        $sachsenFacilityCount = Cache::remember('home_sachsen_facility_count_v2', 86400, fn () => Facility::whereHas('city', fn ($query) => $query->where('state_slug', 'sachsen'))->where('is_active', true)->count());
+        $topCities = Cache::remember('home_top_cities_v2', 86400, fn () => City::query()
             ->has('facilities')
             ->withCount('facilities')
             ->orderByDesc('facilities_count')
@@ -32,6 +34,7 @@ class HomeController extends Controller
             ->map(fn ($city) => [
                 'name' => $city->name,
                 'slug' => $city->slug,
+                'state_slug' => $city->state_slug,
             ])
             ->toArray()
         );
@@ -41,6 +44,8 @@ class HomeController extends Controller
             'cityCount' => $cityCount,
             'topCities' => $topCities,
             'popularSearches' => collect(self::POPULAR_SEARCHES),
+            'brandenburgFacilityCount' => $brandenburgFacilityCount,
+            'sachsenFacilityCount' => $sachsenFacilityCount,
         ]);
     }
 }

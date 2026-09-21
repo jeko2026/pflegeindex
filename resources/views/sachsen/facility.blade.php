@@ -1,0 +1,2 @@
+@php $qualityScore=null; $config=['stateName'=>'Sachsen','landUrl'=>route('sachsen.land'),'cityRoute'=>'sachsen.cities.show','facilityRoute'=>'sachsen.facilities.show','sourceLabel'=>'Öffentliche Einträge','sourceFooter'=>'Quelle: öffentliche Unternehmens- und Karteneinträge','sourceNotice'=>'Daten aus öffentlich zugänglichen Unternehmens- und Karteneinträgen, redaktionell aufbereitet.','addressFromRecord'=>true,'showQuality'=>false,'showSocial'=>true,'showOpeningHours'=>true]; @endphp
+@extends('directory.facility')

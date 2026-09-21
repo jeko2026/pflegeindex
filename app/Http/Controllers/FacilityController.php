@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Models\Facility;
 use App\Services\CarePageService;
+use App\Services\FacilityProfilePresenter;
 use App\Services\QualityScoreService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\View\View;
 
 class FacilityController extends Controller
 {
-    public function show(City $city, Facility $facility, QualityScoreService $qualityScoreService, CarePageService $carePages): View
+    public function show(City $city, Facility $facility, QualityScoreService $qualityScoreService, CarePageService $carePages, FacilityProfilePresenter $profilePresenter): View
     {
         $relatedFacilities = Facility::query()
             ->with('city')
@@ -29,6 +30,7 @@ class FacilityController extends Controller
             'facility' => $facility,
             'relatedFacilities' => $relatedFacilities,
             'qualityScore' => $qualityScoreService->evaluate($facility),
+            'profile' => $profilePresenter->for($facility),
             'titleDiscriminator' => $this->titleDiscriminator($facility),
         ]);
     }

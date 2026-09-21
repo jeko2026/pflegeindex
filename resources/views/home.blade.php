@@ -2,7 +2,7 @@
 
 @php
     $pageTitle = 'PflegeIndex – Pflege einfach finden';
-    $pageDescription = 'Pflegeheime, Pflegedienste, Tagespflege und Krankenhäuser in Brandenburg finden.';
+    $pageDescription = 'Pflegeheime, Pflegedienste, Tagespflege und weitere Pflegeangebote in Brandenburg und Sachsen finden.';
     $pageUrl = route('home');
     $organizationId = $pageUrl.'#organization';
     $websiteId = $pageUrl.'#website';
@@ -74,9 +74,9 @@
     <section class="home-hero">
         <div class="container hero-grid">
             <div class="hero-copy">
-                <p class="eyebrow">PflegeIndex startet in Brandenburg</p>
+                <p class="eyebrow">Pflegeangebote in Brandenburg und Sachsen</p>
                 <h1>Passende Pflege in Ihrer Nähe <span>finden.</span></h1>
-                <p class="hero-lead">PflegeIndex hilft Angehörigen und Pflegebedürftigen, Pflegeangebote in Brandenburg übersichtlich zu entdecken und passende Einrichtungen zu vergleichen.</p>
+                <p class="hero-lead">PflegeIndex hilft Angehörigen und Pflegebedürftigen, Pflegeangebote in Brandenburg und Sachsen übersichtlich zu entdecken und passende Einrichtungen zu vergleichen.</p>
                 <form class="hero-search" method="get" action="{{ route('directory.index') }}">
                     <label class="field-wrap">
                         <span class="sr-only">Ort oder Postleitzahl</span>
@@ -94,14 +94,14 @@
                     </label>
                     <button class="primary-button" type="submit">Pflege finden <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></button>
                 </form>
-                <p class="search-hint">{{ number_format($facilityCount, 0, ',', '.') }} offizielle Basiseinträge aus Brandenburg, sortiert nach Ort und Einrichtungsart.</p>
+                <p class="search-hint">{{ number_format($brandenburgFacilityCount, 0, ',', '.') }} amtliche Basiseinträge aus Brandenburg und {{ number_format($sachsenFacilityCount, 0, ',', '.') }} Einträge aus Sachsen, sortiert nach Ort und Einrichtungsart.</p>
 
                 @if(!empty($topCities))
                     <nav class="search-suggestions" aria-label="Beliebte Städte">
                         <span class="search-suggestions__label">Beliebte Städte:</span>
                         <ul class="search-suggestions__list">
                             @foreach($topCities as $topCity)
-                                <li><a href="{{ route('cities.show', $topCity['slug']) }}">{{ $topCity['name'] }}</a></li>
+                                <li><a href="{{ $topCity['state_slug'] === 'sachsen' ? route('sachsen.cities.show', $topCity['slug']) : route('cities.show', $topCity['slug']) }}">{{ $topCity['name'] }}</a></li>
                             @endforeach
                         </ul>
                     </nav>
@@ -110,7 +110,7 @@
 
             <div class="hero-visual" aria-hidden="true">
                 <div class="map-card">
-                    <span class="map-card__label">PflegeIndex Brandenburg</span>
+                    <span class="map-card__label">PflegeIndex · Brandenburg & Sachsen</span>
                     <h2>Pflege in der Nähe</h2>
                     <div class="map-lines"><span class="map-pin one"></span><span class="map-pin two"></span><span class="map-pin three"></span></div>
                     <div class="map-caption"><strong>Passende Angebote</strong><span>übersichtlich vergleichen</span></div>
@@ -124,7 +124,7 @@
             <span class="stats-bar-title">PflegeIndex in Zahlen:</span>
             <span class="stats-bar-item"><strong>{{ number_format($facilityCount, 0, ',', '.') }}</strong> Einrichtungen</span>
             <span class="stats-bar-item"><strong>{{ number_format($cityCount, 0, ',', '.') }}</strong> Städte & Gemeinden</span>
-            <span class="stats-bar-item">Region: <strong>Brandenburg</strong></span>
+            <span class="stats-bar-item">Regionen: <strong>Brandenburg &amp; Sachsen</strong></span>
         </div>
     </div>
 

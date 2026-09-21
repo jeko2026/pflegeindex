@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Cache;
 
 class Facility extends Model
@@ -54,6 +56,16 @@ class Facility extends Model
         'contact_checked_at',
         'contact_locked',
         'care_types',
+        'website_domain',
+        'latitude',
+        'longitude',
+        'google_rating',
+        'google_review_count',
+        'google_place_id',
+        'google_cid',
+        'is_active',
+        'verification_status',
+        'last_verified_at',
         'features',
     ];
 
@@ -69,6 +81,8 @@ class Facility extends Model
             'description_ai_assisted' => 'boolean',
             'contact_checked_at' => 'datetime',
             'contact_locked' => 'boolean',
+            'is_active' => 'boolean',
+            'last_verified_at' => 'datetime',
             'official_website_absent' => 'boolean',
             'official_email_absent' => 'boolean',
         ];
@@ -138,5 +152,25 @@ class Facility extends Model
             'not_found' => 'Nicht gefunden',
             default => 'Noch offen',
         };
+    }
+
+    public function sources(): HasMany
+    {
+        return $this->hasMany(FacilitySource::class);
+    }
+
+    public function socialLinks(): HasMany
+    {
+        return $this->hasMany(FacilitySocialLink::class);
+    }
+
+    public function openingHours(): HasOne
+    {
+        return $this->hasOne(FacilityOpeningHour::class);
+    }
+
+    public function serviceTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(ServiceType::class);
     }
 }

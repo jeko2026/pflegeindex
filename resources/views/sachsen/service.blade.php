@@ -1,0 +1,2 @@
+@php $editorial=null; $config=['stateName'=>'Sachsen','landUrl'=>route('sachsen.land'),'cityRoute'=>'sachsen.cities.show','serviceRoute'=>'sachsen.services.show','facilityRoute'=>'sachsen.facilities.show','sourceLabel'=>'Öffentliche Einträge','sourceFooter'=>'Quelle: öffentliche Unternehmens- und Karteneinträge','sourceNotice'=>'Quelle: öffentliche Unternehmens- und Karteneinträge. Kontaktdaten werden fortlaufend ergänzt und geprüft.','addressFromRecord'=>true,'showFaq'=>false]; @endphp
+@extends('directory.service')

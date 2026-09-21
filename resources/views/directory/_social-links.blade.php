@@ -1,0 +1,3 @@
+@if(!empty($socialLinks))
+<section class="detail-section"><h2>Online &amp; Social</h2><div class="social-links">@foreach($socialLinks as $link)<a class="social-link social-link--{{ $link['platform'] }}" href="{{ $link['url'] }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $link['label'] }} von {{ $facility->name }} öffnen"><span>{{ $link['label'] }}</span></a>@endforeach</div></section>
+@endif

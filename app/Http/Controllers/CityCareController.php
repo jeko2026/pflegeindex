@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Services\CarePageService;
+use App\Services\SeoActionContent;
 use Illuminate\View\View;
 
 class CityCareController extends Controller
@@ -15,8 +16,9 @@ class CityCareController extends Controller
 
         $facilities = $pages->facilities($city, $careSlug)
             ->with('city')->orderBy('name')->orderBy('id')->get();
-        abort_if($facilities->isEmpty(), 404);
+        abort_if($facilities->count() < $pages->minimumFacilities($city, $careSlug), 404);
+        $editorial = app(SeoActionContent::class)->service($city, $category, $facilities);
 
-        return view('cities.care', compact('city', 'category', 'facilities'));
+        return view('cities.care', compact('city', 'category', 'facilities', 'editorial'));
     }
 }

@@ -29,7 +29,7 @@ class ExampleTest extends TestCase
     public function test_home_has_open_graph_website_and_organization_metadata(): void
     {
         $title = 'PflegeIndex – Pflege einfach finden';
-        $description = 'Pflegeheime, Pflegedienste, Tagespflege und Krankenhäuser in Brandenburg finden.';
+        $description = 'Pflegeheime, Pflegedienste, Tagespflege und weitere Pflegeangebote in Brandenburg und Sachsen finden.';
         $pageUrl = route('home');
         $imageUrl = 'https://pflegeindex.com/assets/og-image.png';
         $response = $this->get($pageUrl)->assertOk();
@@ -151,8 +151,8 @@ class ExampleTest extends TestCase
         $response = $this->get('/')->assertOk();
 
         $response
-            ->assertSee('PflegeIndex startet in Brandenburg')
-            ->assertSee('Pflegeangebote in Brandenburg übersichtlich zu entdecken')
+            ->assertSee('Pflegeangebote in Brandenburg und Sachsen')
+            ->assertSee('Pflegeangebote in Brandenburg und Sachsen übersichtlich zu entdecken')
             ->assertSee('href="'.route('cities.show', $city).'">Potsdam</a>', false)
             ->assertSee('Beliebte Suchen')
             ->assertSee('Pflegedienst Potsdam')

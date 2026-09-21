@@ -25,10 +25,10 @@ class CityCarePageTest extends TestCase
         $detail = route('facilities.show', [$city, $included]);
         $response = $this->get($url.'?utm_source=test')->assertOk()
             ->assertSee('<h1>Ambulante Pflegedienste in Neuruppin</h1>', false)
-            ->assertSee('<title>Ambulante Pflegedienste in Neuruppin | PflegeIndex</title>', false)
+            ->assertSee('<title>Pflegedienste in Neuruppin – Auswahl &amp; Kontakt | PflegeIndex</title>', false)
             ->assertSee('<link rel="canonical" href="'.$url.'">', false)
             ->assertSee('<meta name="robots" content="index, follow">', false)
-            ->assertSee('Ambulante Pflegedienste in Neuruppin: Adressen, Telefonnummern, Websites und weitere Kontaktdaten auf PflegeIndex.')
+            ->assertSee('Ambulante Pflegedienste in Neuruppin: 1 Eintrag mit Anschriften und Kontakthinweisen. Auswahl, Kostenfragen und nächste Schritte verständlich erklärt.')
             ->assertSee($included->name)->assertDontSee($excluded->name)->assertDontSee($elsewhere->name)
             ->assertSee('href="'.$detail.'"', false)
             ->assertSee('href="'.route('cities.show', $city).'"', false)
@@ -130,7 +130,7 @@ class CityCarePageTest extends TestCase
             DB::table('facilities')->where('id', $excluded->id)->update(['updated_at' => '2026-09-01 10:00:00']);
             DB::table('cities')->where('id', $city->id)->update(['updated_at' => '2026-08-01 10:00:00']);
 
-            $expected[route('cities.care.show', [$city, $category])] = Carbon::parse($facilityUpdatedAt)->toAtomString();
+            $expected[route('cities.care.show', [$city, $category])] = Carbon::parse(max($facilityUpdatedAt, config('seo_action.reviewed_at')))->toAtomString();
         }
 
         $sitemapPages = collect(app(CarePageService::class)->sitemapPages())->keyBy('loc');

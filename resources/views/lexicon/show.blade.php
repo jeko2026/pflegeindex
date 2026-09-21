@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $term['title'].' einfach erklärt | PflegeIndex Pflegelexikon')
+@section('canonical', route('lexicon.show', $slug))
 @section('description', $term['summary'].' Verständliche Erklärung, wichtige Hinweise und offizielle Quellen.')
 
 @push('head')
@@ -62,6 +63,7 @@
                 </section>
             @endif
 
+            @include('lexicon._local-links')
             <section class="detail-section lexicon-sources">
                 <h2>Offizielle Quellen</h2>
                 <ul>

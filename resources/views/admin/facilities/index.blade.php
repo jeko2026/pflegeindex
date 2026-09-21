@@ -19,7 +19,7 @@
             <input name="q" type="search" value="{{ $query }}" placeholder="Name, Stadt oder PLZ" aria-label="Einrichtung suchen">
             <select name="status" aria-label="Kontaktstatus"><option value="">Alle Status</option><option value="verified" @selected($status === 'verified')>Geprüft</option><option value="unverified" @selected($status === 'unverified')>Offen</option><option value="pending" @selected($status === 'pending')>In Prüfung</option><option value="not_found" @selected($status === 'not_found')>Nicht gefunden</option><option value="missing" @selected($status === 'missing')>Noch offen</option></select>
             @php($activeContactFilters = collect([$phone, $email, $website, $source])->filter()->count())
-            <details class="admin-contact-filter" @if($activeContactFilters) open @endif>
+            <details class="admin-contact-filter" data-contact-filter @if($activeContactFilters) open @endif>
                 <summary>Kontaktdaten @if($activeContactFilters)<span>{{ $activeContactFilters }} aktiv</span>@endif</summary>
                 <div class="admin-contact-filter__panel">
                     @foreach([
@@ -82,6 +82,22 @@
         </form>
         <x-pagination :paginator="$facilities" />
     </main>
+
+    <script>
+        (() => {
+            const contactFilter = document.querySelector('[data-contact-filter]');
+
+            if (!contactFilter) {
+                return;
+            }
+
+            document.addEventListener('click', (event) => {
+                if (contactFilter.open && !contactFilter.contains(event.target)) {
+                    contactFilter.removeAttribute('open');
+                }
+            });
+        })();
+    </script>
 
     @if($hasDraftsOnPage)
         <script>

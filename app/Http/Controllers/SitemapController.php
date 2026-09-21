@@ -35,6 +35,8 @@ class SitemapController extends Controller
             ->orderBy('slug')
             ->get();
 
+        $sachsenCities = City::query()->select(['id', 'name', 'slug', 'updated_at'])->where('state_slug', 'sachsen')->whereHas('facilities', fn ($query) => $query->where('is_active', true))->with(['facilities' => fn ($query) => $query->select(['id', 'city_id', 'slug', 'updated_at'])->where('is_active', true)->with('serviceTypes:id,slug')])->orderBy('slug')->get();
+
         $lastModified = Facility::query()->max('updated_at');
         $lexiconTerms = collect(config('lexicon.terms', []))
             ->map(fn (array $term, string $slug): array => [
@@ -50,10 +52,11 @@ class SitemapController extends Controller
             ['loc' => route('pages.about'), 'changefreq' => 'monthly', 'priority' => '0.5'],
         ];
 
+        $staticPages[] = ['loc' => route('guides.care-costs'), 'lastmod' => config('seo_action.reviewed_at'), 'changefreq' => 'monthly', 'priority' => '0.6'];
         $staticPages = [...$staticPages, ...$carePages->sitemapPages()];
 
         return response()
-            ->view('seo.sitemap', compact('cities', 'districts', 'staticPages', 'lastModified', 'lexiconTerms'), 200, [
+            ->view('seo.sitemap', compact('cities', 'sachsenCities', 'districts', 'staticPages', 'lastModified', 'lexiconTerms'), 200, [
                 'Content-Type' => 'application/xml; charset=UTF-8',
             ])
             ->header('Cache-Control', 'public, max-age=3600');

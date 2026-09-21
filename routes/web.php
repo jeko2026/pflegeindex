@@ -14,18 +14,24 @@ use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LexiconController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\SachsenDirectoryController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/pflegeheime.html', [DirectoryController::class, 'index'])->name('directory.index');
 Route::get('/brandenburg.html', [RegionController::class, 'show'])->name('region.show');
+Route::get('/sachsen.html', [SachsenDirectoryController::class, 'land'])->name('sachsen.land');
+Route::get('/sachsen/{city:slug}.html', [SachsenDirectoryController::class, 'city'])->name('sachsen.cities.show');
+Route::get('/sachsen/{city:slug}/{service}.html', [SachsenDirectoryController::class, 'service'])->name('sachsen.services.show');
+Route::get('/pflegeeinrichtungen/sachsen/{city:slug}/{facility:slug}', [SachsenDirectoryController::class, 'facility'])->scopeBindings()->name('sachsen.facilities.show');
 Route::get('/brandenburg/landkreis/{districtSlug}.html', [DistrictController::class, 'show'])
     ->name('districts.show');
 Route::get('/brandenburg/{city:slug}/{careSlug}.html', [CityCareController::class, 'show'])->name('cities.care.show');
 Route::get('/brandenburg/{city:slug}.html', [CityController::class, 'show'])
     ->defaults('stateSlug', 'brandenburg')
     ->name('cities.show');
+Route::view('/ratgeber/pflegeheime-kosten.html', 'pages.care-costs')->name('guides.care-costs');
 Route::get('/pflegelexikon.html', [LexiconController::class, 'index'])->name('lexicon.index');
 Route::get('/pflegelexikon/{slug}.html', [LexiconController::class, 'show'])->name('lexicon.show');
 Route::view('/ueber-das-projekt.html', 'pages.about')->name('pages.about');

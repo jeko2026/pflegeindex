@@ -1,0 +1,2 @@
+@php $config=['stateName'=>'Sachsen','landUrl'=>route('sachsen.land'),'cityRoute'=>'sachsen.cities.show','facilityRoute'=>'sachsen.facilities.show','sourceLabel'=>'Öffentliche Einträge','sourceFooter'=>'Quelle: öffentliche Unternehmens- und Karteneinträge','addressFromRecord'=>true,'intro'=>'Alle erfassten Pflegeangebote nach Stadt und Gemeinde. Daten aus öffentlich zugänglichen Unternehmens- und Karteneinträgen, redaktionell aufbereitet.']; $districts=collect(); $facilities=null; @endphp
+@include('directory.land')

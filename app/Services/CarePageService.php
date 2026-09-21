@@ -81,6 +81,11 @@ class CarePageService
         return json_encode($value, JSON_THROW_ON_ERROR);
     }
 
+    public function minimumFacilities(City $city, string $slug): int
+    {
+        return in_array($slug, config('seo_action.new_pages.'.$city->slug, []), true) ? 3 : 1;
+    }
+
     public function links(City $city, ?Facility $facility = null): array
     {
         $links = [];
@@ -90,10 +95,13 @@ class CarePageService
                 continue;
             }
             $query = $this->facilities($city, $slug);
+            if ((clone $query)->count() < $this->minimumFacilities($city, $slug)) {
+                continue;
+            }
             if ($facility !== null) {
                 $query->whereKey($facility->id);
             }
-            if ($query->exists()) {
+            if ($facility === null || $query->exists()) {
                 $links[] = [...$category, 'url' => route('cities.care.show', [$city, $slug])];
             }
         }
@@ -104,7 +112,8 @@ class CarePageService
     private function sitemapLastModified(City $city, string $slug): ?Carbon
     {
         $facilityLastModified = $this->facilities($city, $slug)->max('updated_at');
-        $lastModified = collect([$city->updated_at, $facilityLastModified])
+        $editorialDate = config('seo_action.service_profiles.'.$city->slug.'/'.$slug) ? config('seo_action.reviewed_at') : null;
+        $lastModified = collect([$city->updated_at, $facilityLastModified, $editorialDate])
             ->filter()
             ->map(fn ($timestamp) => Carbon::parse($timestamp))
             ->max();

@@ -1,0 +1,1 @@
+@include('directory._facility-card',['facility'=>$facility,'city'=>$city,'config'=>['facilityRoute'=>'sachsen.facilities.show','sourceLabel'=>'Öffentliche Einträge','sourceFooter'=>'Quelle: öffentliche Unternehmens- und Karteneinträge','addressFromRecord'=>true]])

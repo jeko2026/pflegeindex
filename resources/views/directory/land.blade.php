@@ -1,0 +1,12 @@
+@extends('layouts.app')
+@section('title', 'Pflegeeinrichtungen in '.$config['stateName'].' – PflegeIndex')
+@section('description', $facilityCount.' Pflegeeinrichtungen in '.$cities->count().' Orten '.$config['stateName'].'s entdecken.')
+@section('canonical', $config['landUrl'])
+@section('content')
+<section class="page-hero"><div class="container"><h1>Pflegeeinrichtungen in {{ $config['stateName'] }}</h1><p class="page-hero__lead">{{ $config['intro'] }}</p></div></section>
+<section class="section"><div class="container"><div class="region-summary"><div><strong>{{ number_format($facilityCount,0,',','.') }}</strong><span>Einrichtungen</span></div><div><strong>{{ $cities->count() }}</strong><span>Orte</span></div><div><strong>{{ $typeCount }}</strong><span>Einrichtungsarten</span></div></div>
+@if(($districts ?? collect())->isNotEmpty())<section><div class="section-heading" style="margin-top:42px"><p class="eyebrow">Regionen</p><h2>Landkreise und kreisfreie Städte</h2></div><div class="city-grid">@foreach($districts as $district)<a class="city-card" href="{{ route('districts.show',$district->slug) }}"><span class="city-card__pin">⌖</span><span><strong>{{ $district->display_name }}</strong><small>{{ $district->type === 'landkreis' ? 'Landkreis' : 'Kreisfreie Stadt' }} · {{ $district->linked_cities_count }} {{ $district->linked_cities_count === 1 ? 'Ort' : 'Orte' }} · {{ $district->facilities_count }} {{ $district->facilities_count === 1 ? 'Einrichtung' : 'Einrichtungen' }}</small></span><span>→</span></a>@endforeach</div></section>@endif
+<section><div class="section-heading section-heading--split" style="margin-top:42px"><div><p class="eyebrow">Ortsverzeichnis</p><h2>Pflegeeinrichtungen nach Stadt</h2></div><a href="{{ route('directory.index') }}">Alle Einrichtungen durchsuchen</a></div><div class="city-grid">@foreach($cities as $city)<a class="city-card" href="{{ route($config['cityRoute'],$city) }}"><span class="city-card__pin">⌖</span><span><strong>{{ $city->name }}</strong><small>{{ $city->facilities_count }} Einrichtungen</small></span><span>→</span></a>@endforeach</div></section>
+@if(($facilities ?? null))<section><div class="results-heading" style="margin-top:72px"><h2>Alle Pflegeeinrichtungen in {{ $config['stateName'] }}</h2><p>{{ $facilities->count() }} auf dieser Seite</p></div><div class="results-list">@foreach($facilities as $facility)@include('directory._facility-card',['facility'=>$facility,'config'=>$config])@endforeach</div><x-pagination :paginator="$facilities" /></section>@endif
+</div></section>
+@endsection

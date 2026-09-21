@@ -373,6 +373,20 @@ class AdminTest extends TestCase
             ->assertDontSee('Vollständiger Kontakt');
     }
 
+    public function test_contact_filter_closes_when_clicking_outside(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->createFacility();
+
+        $this->actingAs($admin)
+            ->get(route('admin.facilities.index'))
+            ->assertOk()
+            ->assertSee('data-contact-filter', false)
+            ->assertSee("document.addEventListener('click'", false)
+            ->assertSee('contactFilter.open && !contactFilter.contains(event.target)', false)
+            ->assertSee("contactFilter.removeAttribute('open')", false);
+    }
+
     public function test_facility_list_supports_dashboard_missing_and_unverified_filters(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

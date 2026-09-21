@@ -46,8 +46,8 @@ class DirectoryCorePageTest extends TestCase
             ->assertSee('+49 331 88700')
             ->assertSee('href="mailto:kontakt@example.de"', false)
             ->assertSee('href="https://example.de/pflegezentrum"', false)
-            ->assertSee('<title>Pflegeangebote finden – PflegeIndex</title>', false)
-            ->assertSee('<meta name="description" content="Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.">', false)
+            ->assertSee('<title>Pflegeheime &amp; Pflegedienste in Brandenburg finden – 1 Einrichtungen | PflegeIndex</title>', false)
+            ->assertSee('<meta name="description" content="Über 1 Pflegeheime, Pflegedienste und Krankenhäuser in Brandenburg. Nach Ort, PLZ, Name und Einrichtungsart filtern – mit amtlichen Basisdaten des LASV.">', false)
             ->assertSee('<link rel="canonical" href="'.$canonical.'">', false);
 
         $this->assertInstanceOf(PflegeEntryCardViewModel::class, $paginator->items()[0]);
@@ -263,10 +263,10 @@ class DirectoryCorePageTest extends TestCase
                 ? route('directory.index')
                 : route('directory.index', ['page' => $page]);
             $title = $page === 1
-                ? 'Pflegeangebote finden – PflegeIndex'
+                ? 'Pflegeheime &amp; Pflegedienste in Brandenburg finden – 49 Einrichtungen | PflegeIndex'
                 : "Pflegeangebote finden – Seite {$page} – PflegeIndex";
             $description = $page === 1
-                ? 'Pflegeangebote in Brandenburg nach Ort, Postleitzahl, Name und Einrichtungsart durchsuchen.'
+                ? 'Über 49 Pflegeheime, Pflegedienste und Krankenhäuser in Brandenburg. Nach Ort, PLZ, Name und Einrichtungsart filtern – mit amtlichen Basisdaten des LASV.'
                 : "Seite {$page} mit weiteren Pflegeangeboten in Brandenburg.";
             $response = $this->get(route('directory.index', ['page' => $page]))->assertOk();
 
