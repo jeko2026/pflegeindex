@@ -143,7 +143,7 @@ final class DataQualityImportReviewPackCommand extends Command
         $pdo = DB::connection()->getPdo();
         try {
             DB::statement('VACUUM INTO '.$pdo->quote($backup));
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             // RefreshDatabase keeps in-memory SQLite inside a transaction; export a
             // faithful SQLite snapshot for tests and other ephemeral databases.
             if ((string) config('database.connections.sqlite.database') !== ':memory:') {
@@ -163,6 +163,7 @@ final class DataQualityImportReviewPackCommand extends Command
                 foreach (DB::select("SELECT * FROM \"{$table}\"") as $row) {
                     $values = array_map(static function ($name) use ($row, $snapshot) {
                         $value = $row->{$name} ?? null;
+
                         return $value === null ? 'NULL' : "'".$snapshot->escapeString((string) $value)."'";
                     }, $names);
                     @$snapshot->exec('INSERT INTO "'.$table.'" ("'.implode('","', $names).'") VALUES ('.implode(',', $values).')');

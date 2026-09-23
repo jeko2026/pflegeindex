@@ -46,6 +46,7 @@ final class FacilitiesExportOutsourcingCommand extends Command
 
         if ($this->option('dry-run')) {
             $this->renderMetrics($metrics);
+
             return self::SUCCESS;
         }
 

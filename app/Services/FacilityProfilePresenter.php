@@ -49,7 +49,7 @@ class FacilityProfilePresenter
             return 'Geschlossen';
         }
 
-return collect(preg_split('/\s*(?:,|;)\s*/', $v) ?: [])->map(function ($p) {
+        return collect(preg_split('/\s*(?:,|;)\s*/', $v) ?: [])->map(function ($p) {
             $r = preg_split('/\s*[–-]\s*/u', trim($p));
 
             return count($r) === 2 ? $this->time($r[0]).'–'.$this->time($r[1]) : trim($p);
@@ -68,7 +68,7 @@ return collect(preg_split('/\s*(?:,|;)\s*/', $v) ?: [])->map(function ($p) {
             $h = 0;
         }
 
-return sprintf('%02d:%02d', $h, (int) ($m[2] ?? 0));
+        return sprintf('%02d:%02d', $h, (int) ($m[2] ?? 0));
     }
 
     private function safeUrl(string $u): ?string
@@ -81,6 +81,6 @@ return sprintf('%02d:%02d', $h, (int) ($m[2] ?? 0));
             return null;
         }
 
-return $p['scheme'].'://'.$p['host'].($p['path'] ?? '').(isset($p['fragment']) ? '#'.$p['fragment'] : '');
+        return $p['scheme'].'://'.$p['host'].($p['path'] ?? '').(isset($p['fragment']) ? '#'.$p['fragment'] : '');
     }
 }

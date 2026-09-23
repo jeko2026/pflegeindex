@@ -112,6 +112,12 @@
             ? "{$facility->name}, {$titleDiscriminator} in {$city->name} – PflegeIndex"
             : "{$facility->name} in {$city->name} – PflegeIndex");
     $pageDescription = $cleanAndLimitDescription($rawDescription, 155);
+$seoOverrides = [
+    'awo-seniorenzentrum-am-tierpark-16278' => ['title' => 'AWO Seniorenzentrum "Am Tierpark" in Angermünde – PflegeIndex', 'description' => 'AWO Seniorenzentrum "Am Tierpark" in Angermünde: stationäre Pflege mit 33 Plätzen, Kurzzeitpflege und Demenzbereich. Adresse, Kontakt & Leistungen im Überblick.'],
+    'medi-care-gmbh-haus-barbara-15848' => ['title' => 'MEDI+CARE GmbH Haus Barbara in Beeskow – PflegeIndex', 'description' => 'Vollstationäres Pflegeheim MEDI+CARE Haus Barbara in Beeskow, Frankfurter Chaussee 49. Adresse, Kontakt und amtliche Basisdaten im PflegeIndex-Profil.'],
+    'haus-am-mariengrund-brandenburg-an-der-havel-14770' => ['title' => 'Haus am Mariengrund – Pflegeheim in Brandenburg an der Havel | PflegeIndex', 'description' => 'Haus am Mariengrund in Brandenburg an der Havel: stationäre Pflege, Kurzzeitpflege, betreutes Wohnen und Junge Pflege. Adresse, Kontakt & Leistungen.'],
+];
+if (isset($seoOverrides[$facility->slug])) { $pageTitle = $seoOverrides[$facility->slug]['title']; $pageDescription = $seoOverrides[$facility->slug]['description']; }
 
     $mapQuery = rawurlencode("{$facility->name}, {$facility->address}, {$facility->postal_code} {$city->name}, Deutschland");
     $googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query='.$mapQuery;
@@ -270,7 +276,11 @@
                 @endif
                 <div class="notice notice--compact">{{ $directoryConfig['sourceNotice'] }}</div>
             </section>
-            <section class="detail-section"><h2>Einrichtungsart</h2><div class="check-grid">@foreach($facility->care_types ?? [$facility->type] as $careType)<span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>{{ $careType }}</span>@endforeach</div></section>
+            @include('directory._facility-enrichment', ['enrichmentGroups' => $enrichmentGroups ?? []])
+            @include('directory._facility-nearby-places', ['nearbyPlaces' => $nearbyPlaces ?? []])
+            @if($facility->serviceTypes->isNotEmpty())
+                <section class="detail-section"><h2>Einrichtungsart</h2><div class="check-grid">@foreach($facility->serviceTypes as $serviceType)<span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>{{ $serviceType->name }}</span>@endforeach</div></section>
+            @endif
             @include('facilities._content')
             @if($directoryConfig['showOpeningHours'])
                 @include('directory._opening-hours', ['openingHours' => $profile['openingHours'] ?? []])

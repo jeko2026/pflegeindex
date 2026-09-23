@@ -18,11 +18,13 @@ final class DataQualityNextBatchCommand extends Command
         $queue = trim((string) $this->option('queue'));
         if (! in_array($queue, BatchManager::QUEUES, true)) {
             $this->error('--queue must be one of: '.implode(', ', BatchManager::QUEUES));
+
             return self::FAILURE;
         }
         $size = filter_var($this->option('size'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if ($size === false) {
             $this->error('--size must be a positive integer.');
+
             return self::FAILURE;
         }
         $batches = $manager->index();
@@ -36,6 +38,7 @@ final class DataQualityNextBatchCommand extends Command
         $selected = array_slice($available, 0, $size);
         if ($selected === []) {
             $this->info('No unassigned records remain in '.$queue.'.');
+
             return self::SUCCESS;
         }
         $next = 1;
@@ -58,6 +61,7 @@ final class DataQualityNextBatchCommand extends Command
         $batches[] = ['id' => $id, 'queue' => $queue, 'filename' => $filename, 'size' => count($selected), 'created_at' => now()->toIso8601String(), 'completed_at' => null, 'status' => 'open'];
         $manager->writeIndex($batches);
         $this->info('Created '.$filename.' ('.count($selected).' records).');
+
         return self::SUCCESS;
     }
 }

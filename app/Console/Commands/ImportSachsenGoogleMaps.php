@@ -220,7 +220,7 @@ class ImportSachsenGoogleMaps extends Command
             return null;
         }
 
-return str_starts_with($digits, '49') ? '+'.$digits : (str_starts_with($digits, '0') ? '+49'.substr($digits, 1) : '+'.$digits);
+        return str_starts_with($digits, '49') ? '+'.$digits : (str_starts_with($digits, '0') ? '+49'.substr($digits, 1) : '+'.$digits);
     }
 
     private function email($value): ?string
@@ -237,7 +237,7 @@ return str_starts_with($digits, '49') ? '+'.$digits : (str_starts_with($digits, 
             return null;
         }
 
-return 'https://'.ltrim(preg_replace('#^https?://#', '', $v), '/');
+        return 'https://'.ltrim(preg_replace('#^https?://#', '', $v), '/');
     }
 
     private function clean($value): ?string
@@ -287,9 +287,9 @@ return 'https://'.ltrim(preg_replace('#^https?://#', '', $v), '/');
             if ($data) {
                 fputcsv($h, array_keys($data[0]));
                 foreach ($data as $line) {
-                    fputcsv($h,$line);
+                    fputcsv($h, $line);
                 }
             } fclose($h);
-        } file_put_contents($dir.'/sachsen-gmaps-import-report.html','<!doctype html><meta charset="utf-8"><title>Sachsen G Maps Import</title><pre>'.e(json_encode($rows,JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)).'</pre>');
+        } file_put_contents($dir.'/sachsen-gmaps-import-report.html', '<!doctype html><meta charset="utf-8"><title>Sachsen G Maps Import</title><pre>'.e(json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)).'</pre>');
     }
 }

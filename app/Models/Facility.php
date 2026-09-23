@@ -159,6 +159,21 @@ class Facility extends Model
         return $this->hasMany(FacilitySource::class);
     }
 
+    public function enrichmentAttributes(): HasMany
+    {
+        return $this->hasMany(FacilityAttribute::class);
+    }
+
+    public function geocode(): HasOne
+    {
+        return $this->hasOne(FacilityGeocode::class);
+    }
+
+    public function nearbyPlaces(): HasMany
+    {
+        return $this->hasMany(FacilityNearbyPlace::class);
+    }
+
     public function socialLinks(): HasMany
     {
         return $this->hasMany(FacilitySocialLink::class);

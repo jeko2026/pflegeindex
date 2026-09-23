@@ -83,6 +83,7 @@ final class DataQualityGenerateReviewQueuesCommand extends Command
         return $facilities->filter(function (Facility $facility) use ($fromAudit): bool {
             $address = (string) ($facility->address ?? '');
             $postcode = (string) ($facility->postal_code ?? '');
+
             return $fromAudit->contains(fn (Facility $item): bool => $item->id === $facility->id)
                 || blank($postcode)
                 || ! preg_match('/^\d{5}$/', $postcode)
@@ -94,15 +95,17 @@ final class DataQualityGenerateReviewQueuesCommand extends Command
     private function typeCandidates(Collection $facilities, Collection $issues): Collection
     {
         $allowed = ['Altenpflegeheim', 'Ambulante Pflege', 'Betreutes Wohnen', 'Kurzzeitpflege', 'Tagespflege', 'Verhinderungspflege', 'Pflege-Wohngemeinschaft'];
+
         return $facilities->filter(function (Facility $facility) use ($issues, $allowed): bool {
             $items = $issues->get($facility->id, collect());
+
             return blank($facility->type) || ! in_array($facility->type, $allowed, true) || $items->contains('field', 'type');
         });
     }
 
     private function nameCandidates(Collection $facilities, Collection $issues, Collection $duplicateIds): Collection
     {
-        $ids = $issues->filter(function (Collection $items) use ($duplicateIds): bool {
+        $ids = $issues->filter(function (Collection $items): bool {
             return $items->contains(fn (array $issue): bool => str_starts_with((string) ($issue['issue_code'] ?? ''), 'BASIC_NAME_')
                 || (($issue['category'] ?? '') === 'basic' && ($issue['field'] ?? '') === 'name')
                 || (($issue['category'] ?? '') === 'duplicate' && ($issue['field'] ?? '') === 'duplicate_candidate'));

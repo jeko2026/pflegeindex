@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\ContactSuggestionController as AdminContactSuggestionController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DataQualityController as AdminDataQualityController;
+use App\Http\Controllers\Admin\FacilityAttributeReviewController;
 use App\Http\Controllers\Admin\FacilityController as AdminFacilityController;
 use App\Http\Controllers\Admin\PasswordController as AdminPasswordController;
 use App\Http\Controllers\CityCareController;
@@ -60,6 +61,10 @@ Route::middleware('admin-session')->group(function (): void {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
         Route::get('/data-quality', AdminDataQualityController::class)->name('data-quality');
         Route::get('/einrichtungen', [AdminFacilityController::class, 'index'])->name('facilities.index');
+        Route::get('/einrichtungsattribute', [FacilityAttributeReviewController::class, 'index'])->name('facility-attributes.index');
+        Route::post('/einrichtungsattribute/{attribute}/freigeben', [FacilityAttributeReviewController::class, 'approve'])->name('facility-attributes.approve');
+        Route::post('/einrichtungsattribute/{attribute}/ablehnen', [FacilityAttributeReviewController::class, 'reject'])->name('facility-attributes.reject');
+        Route::post('/einrichtungsattribute/{attribute}/pruefen', [FacilityAttributeReviewController::class, 'needsReview'])->name('facility-attributes.needs-review');
         Route::post('/einrichtungen/beschreibungen-veroeffentlichen', [AdminFacilityController::class, 'publishDescriptionDrafts'])->name('facilities.description-drafts.publish');
         Route::get('/einrichtungen/{facility}/bearbeiten', [AdminFacilityController::class, 'edit'])->name('facilities.edit');
         Route::put('/einrichtungen/{facility}', [AdminFacilityController::class, 'update'])->name('facilities.update');

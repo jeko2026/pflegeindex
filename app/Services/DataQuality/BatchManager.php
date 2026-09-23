@@ -25,6 +25,7 @@ final class BatchManager
         if (! is_array($decoded)) {
             throw new RuntimeException('Batch index.json is not valid JSON.');
         }
+
         return array_values($decoded['batches'] ?? $decoded);
     }
 
@@ -64,6 +65,7 @@ final class BatchManager
             $rows[] = $row;
         }
         fclose($handle);
+
         return ['headers' => $headers, 'rows' => $rows];
     }
 
@@ -88,6 +90,7 @@ final class BatchManager
                 }
             }
         }
+
         return $ids;
     }
 
@@ -104,6 +107,7 @@ final class BatchManager
             }
         }
         fclose($handle);
+
         return ['headers' => $headers, 'rows' => $rows];
     }
 }

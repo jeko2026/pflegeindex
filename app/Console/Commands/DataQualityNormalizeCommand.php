@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Facility;
 use App\Services\DataQuality\FacilityContactNormalizer;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 final class DataQualityNormalizeCommand extends Command
@@ -22,12 +22,13 @@ final class DataQualityNormalizeCommand extends Command
 
         // If BOTH are specified
         if ($dryRun && $apply) {
-            $this->error("Cannot specify both --apply and --dry-run.");
+            $this->error('Cannot specify both --apply and --dry-run.');
+
             return 1;
         }
 
         // Default to dry-run unless --apply is explicitly specified
-        $isDryRun = !$apply;
+        $isDryRun = ! $apply;
 
         if ($isDryRun) {
             $this->comment("Running in DRY-RUN mode. No changes will be saved to the database.\n");
@@ -35,14 +36,14 @@ final class DataQualityNormalizeCommand extends Command
             $this->warn("Running in APPLY mode! Changes will be written to the database.\n");
         }
 
-        $normalizer = new FacilityContactNormalizer();
+        $normalizer = new FacilityContactNormalizer;
         $facilities = Facility::all();
         $totalChangesCount = 0;
         $recordsToChange = [];
 
         foreach ($facilities as $f) {
             $changes = $normalizer->getChanges($f);
-            if (!empty($changes)) {
+            if (! empty($changes)) {
                 $recordsToChange[] = [
                     'facility' => $f,
                     'changes' => $changes,
@@ -52,7 +53,8 @@ final class DataQualityNormalizeCommand extends Command
         }
 
         if (empty($recordsToChange)) {
-            $this->info("All facility contact data is already normalized. No changes needed.");
+            $this->info('All facility contact data is already normalized. No changes needed.');
+
             return 0;
         }
 
@@ -73,9 +75,10 @@ final class DataQualityNormalizeCommand extends Command
         $this->table(['ID', 'Name', 'Field', 'Old Value', 'New Value'], $rows);
         $this->line("\nTotal normalization changes proposed/detected: {$totalChangesCount}");
 
-        if (!$isDryRun) {
-            if (!$this->confirm("Are you sure you want to apply these {$totalChangesCount} changes inside a database transaction?", false)) {
-                $this->comment("Operation cancelled.");
+        if (! $isDryRun) {
+            if (! $this->confirm("Are you sure you want to apply these {$totalChangesCount} changes inside a database transaction?", false)) {
+                $this->comment('Operation cancelled.');
+
                 return 0;
             }
 
@@ -89,7 +92,8 @@ final class DataQualityNormalizeCommand extends Command
 
                 $this->info("Successfully applied {$totalChangesCount} changes to the database inside a transaction.");
             } catch (\Throwable $e) {
-                $this->error("Transaction failed! No changes were saved. Error: " . $e->getMessage());
+                $this->error('Transaction failed! No changes were saved. Error: '.$e->getMessage());
+
                 return 1;
             }
         }

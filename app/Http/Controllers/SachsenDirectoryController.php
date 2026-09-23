@@ -6,6 +6,8 @@ use App\Models\City;
 use App\Models\Facility;
 use App\Models\ServiceType;
 use App\Services\CarePageService;
+use App\Services\FacilityEnrichment\FacilityAttributePresenter;
+use App\Services\FacilityNearby\FacilityNearbyPresenter;
 use App\Services\FacilityProfilePresenter;
 use App\Services\FacilityTitleDiscriminator;
 use App\Services\QualityScoreService;
@@ -44,13 +46,13 @@ class SachsenDirectoryController extends Controller
         return view('sachsen.service', compact('city', 'type', 'facilities', 'noindex'));
     }
 
-    public function facility(City $city, Facility $facility, FacilityProfilePresenter $profilePresenter, FacilityTitleDiscriminator $titleDiscriminator, QualityScoreService $qualityScoreService, CarePageService $carePages): View
+    public function facility(City $city, Facility $facility, FacilityProfilePresenter $profilePresenter, FacilityAttributePresenter $attributePresenter, FacilityTitleDiscriminator $titleDiscriminator, FacilityNearbyPresenter $nearbyPresenter, QualityScoreService $qualityScoreService, CarePageService $carePages): View
     {
         abort_unless($city->state_slug === 'sachsen' && $facility->city_id === $city->id && $facility->is_active, 404);
         $facility->load(['serviceTypes', 'socialLinks:id,facility_id,platform,url', 'openingHours:id,facility_id,hours_text,verified_at', 'sources:id,facility_id,source_type,source_name,source_url,last_seen_at']);
         $relatedFacilities = Facility::query()->where('city_id', $city->id)->where('is_active', true)->whereKeyNot($facility->id)->orderBy('name')->limit(3)->get();
         $profile = $profilePresenter->for($facility);
 
-        return view('sachsen.facility', ['city' => $city, 'facility' => $facility, 'relatedFacilities' => $relatedFacilities, 'profile' => $profile, 'titleDiscriminator' => $titleDiscriminator->for($facility), 'qualityScore' => $qualityScoreService->evaluate($facility), 'carePageLinks' => $carePages->links($city, $facility)]);
+        return view('sachsen.facility', ['city' => $city, 'facility' => $facility, 'relatedFacilities' => $relatedFacilities, 'profile' => $profile, 'enrichmentGroups' => $attributePresenter->publicGroups($facility), 'titleDiscriminator' => $titleDiscriminator->for($facility), 'qualityScore' => $qualityScoreService->evaluate($facility), 'carePageLinks' => $carePages->links($city, $facility), 'nearbyPlaces' => $nearbyPresenter->for($facility)]);
     }
 }

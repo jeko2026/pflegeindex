@@ -21,15 +21,18 @@ final class DataQualityCompleteBatchCommand extends Command
             }
             if (($batch['status'] ?? null) === 'completed') {
                 $this->info($id.' is already completed.');
+
                 return self::SUCCESS;
             }
             $batch['status'] = 'completed';
             $batch['completed_at'] = now()->toIso8601String();
             $manager->writeIndex($batches);
             $this->info('Completed '.$id.'.');
+
             return self::SUCCESS;
         }
         $this->error('Batch not found: '.$id);
+
         return self::FAILURE;
     }
 }

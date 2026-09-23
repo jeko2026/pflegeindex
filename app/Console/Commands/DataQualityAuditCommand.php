@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Facility;
 use App\Models\City;
+use App\Models\Facility;
 use App\Services\DataQuality\FacilityDataAuditor;
+use Illuminate\Console\Command;
 
 final class DataQualityAuditCommand extends Command
 {
@@ -18,8 +18,9 @@ final class DataQualityAuditCommand extends Command
     public function handle(): int
     {
         $format = $this->option('format');
-        if (!in_array($format, ['console', 'json', 'csv'], true)) {
+        if (! in_array($format, ['console', 'json', 'csv'], true)) {
             $this->error("Invalid format '{$format}'. Allowed formats: console, json, csv.");
+
             return 1;
         }
 
@@ -27,8 +28,9 @@ final class DataQualityAuditCommand extends Command
         $city = null;
         if ($citySlug) {
             $city = City::where('slug', $citySlug)->first();
-            if (!$city) {
+            if (! $city) {
                 $this->error("City with slug '{$citySlug}' not found.");
+
                 return 1;
             }
         }
@@ -72,13 +74,19 @@ final class DataQualityAuditCommand extends Command
             $hasEmail = ($f->email !== null && trim($f->email) !== '');
             $hasWeb = ($f->website !== null && trim($f->website) !== '');
 
-            if (!$hasPhone && !$hasEmail && !$hasWeb) {
+            if (! $hasPhone && ! $hasEmail && ! $hasWeb) {
                 $metrics['no_contacts']++;
             }
 
-            if ($emailAudit === 'missing') $metrics['missing_email']++;
-            if ($webAudit === 'missing') $metrics['missing_website']++;
-            if ($phoneAudit === 'missing') $metrics['missing_phone']++;
+            if ($emailAudit === 'missing') {
+                $metrics['missing_email']++;
+            }
+            if ($webAudit === 'missing') {
+                $metrics['missing_website']++;
+            }
+            if ($phoneAudit === 'missing') {
+                $metrics['missing_phone']++;
+            }
 
             $cityName = $f->city?->name ?? 'Unknown';
 
@@ -154,6 +162,7 @@ final class DataQualityAuditCommand extends Command
                 'duplicates' => $duplicates,
             ];
             $this->output->write(json_encode($outputData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return 0;
         }
 
@@ -175,13 +184,14 @@ final class DataQualityAuditCommand extends Command
             $csvContent = stream_get_contents($out);
             fclose($out);
             $this->output->write($csvContent);
+
             return 0;
         }
 
         // Default: Console output
-        $this->info("=== PflegeIndex Data Quality Audit ===");
+        $this->info('=== PflegeIndex Data Quality Audit ===');
 
-        $this->info("Summary Metrics:");
+        $this->info('Summary Metrics:');
         $this->table(
             ['Metric', 'Value'],
             [
@@ -200,7 +210,7 @@ final class DataQualityAuditCommand extends Command
             ]
         );
 
-        if (!empty($issuesList)) {
+        if (! empty($issuesList)) {
             $this->info("\nContact Issues:");
             $issuesRows = array_map(fn ($i) => [
                 $i['id'],
@@ -209,16 +219,18 @@ final class DataQualityAuditCommand extends Command
                 $i['field'],
                 $i['value'],
                 $i['issue_category'],
-                $i['severity']
+                $i['severity'],
             ], $issuesList);
             $this->table(['ID', 'Name', 'City', 'Field', 'Value', 'Category', 'Severity'], $issuesRows);
         }
 
         $this->info("\nDuplicate Candidates (Status: duplicate_candidate):");
-        
+
         $hasDupes = false;
         foreach ($duplicates as $type => $list) {
-            if (empty($list)) continue;
+            if (empty($list)) {
+                continue;
+            }
             $hasDupes = true;
             $this->comment("Type: {$type}");
             if ($type === 'same_name_same_city') {
@@ -230,20 +242,20 @@ final class DataQualityAuditCommand extends Command
             } elseif ($type === 'shared_phone') {
                 $rows = array_map(fn ($item) => [
                     $item['phone'],
-                    implode("\n", array_map(fn ($f) => "ID {$f['id']}: {$f['name']} ({$f['city']})", $item['facilities']))
+                    implode("\n", array_map(fn ($f) => "ID {$f['id']}: {$f['name']} ({$f['city']})", $item['facilities'])),
                 ], $list);
                 $this->table(['Phone', 'Facilities'], $rows);
             } elseif ($type === 'shared_website') {
                 $rows = array_map(fn ($item) => [
                     $item['website'],
-                    implode("\n", array_map(fn ($f) => "ID {$f['id']}: {$f['name']} ({$f['city']})", $item['facilities']))
+                    implode("\n", array_map(fn ($f) => "ID {$f['id']}: {$f['name']} ({$f['city']})", $item['facilities'])),
                 ], $list);
                 $this->table(['Website', 'Facilities'], $rows);
             }
         }
 
-        if (!$hasDupes) {
-            $this->line("No duplicate candidates found.");
+        if (! $hasDupes) {
+            $this->line('No duplicate candidates found.');
         }
 
         return 0;

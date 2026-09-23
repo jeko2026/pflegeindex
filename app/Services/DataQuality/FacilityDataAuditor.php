@@ -2,8 +2,8 @@
 
 namespace App\Services\DataQuality;
 
-use App\Models\Facility;
 use App\Models\City;
+use App\Models\Facility;
 
 final class FacilityDataAuditor
 {
@@ -63,7 +63,7 @@ final class FacilityDataAuditor
         $webTrimmed = trim($website);
 
         // Check if absolute URL with http or https
-        if (filter_var($webTrimmed, FILTER_VALIDATE_URL) === false || !preg_match('/^https?:\/\//i', $webTrimmed)) {
+        if (filter_var($webTrimmed, FILTER_VALIDATE_URL) === false || ! preg_match('/^https?:\/\//i', $webTrimmed)) {
             return 'invalid';
         }
 
@@ -131,7 +131,7 @@ final class FacilityDataAuditor
                 ->where('city_id', $row->city_id)
                 ->pluck('id')
                 ->all();
-            
+
             $cityName = City::where('id', $row->city_id)->value('name') ?? 'Unknown';
             $candidates['same_name_same_city'][] = [
                 'name' => $row->name,
@@ -174,7 +174,7 @@ final class FacilityDataAuditor
             $facilities = Facility::where('phone', $row->phone)
                 ->select('id', 'name', 'city_id')
                 ->get();
-            
+
             $items = [];
             foreach ($facilities as $f) {
                 $cityName = City::where('id', $f->city_id)->value('name') ?? 'Unknown';

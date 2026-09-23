@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Facility;
 use App\Models\City;
+use App\Models\Facility;
+use Illuminate\Console\Command;
 
 final class DataQualityCoverageCommand extends Command
 {
@@ -22,8 +22,9 @@ final class DataQualityCoverageCommand extends Command
 
         if ($citySlug) {
             $cityFilter = City::where('slug', $citySlug)->first();
-            if (!$cityFilter) {
+            if (! $cityFilter) {
                 $this->error("City with slug '{$citySlug}' not found.");
+
                 return 1;
             }
         }
@@ -36,7 +37,8 @@ final class DataQualityCoverageCommand extends Command
         $total = $facilities->count();
 
         if ($total === 0) {
-            $this->warn("No facilities found matching the filters.");
+            $this->warn('No facilities found matching the filters.');
+
             return 0;
         }
 
@@ -60,12 +62,18 @@ final class DataQualityCoverageCommand extends Command
             $emailFilled = ($f->email !== null && trim($f->email) !== '');
             $websiteFilled = ($f->website !== null && trim($f->website) !== '');
 
-            if ($phoneFilled) $hasPhone++;
-            if ($emailFilled) $hasEmail++;
-            if ($websiteFilled) $hasWebsite++;
+            if ($phoneFilled) {
+                $hasPhone++;
+            }
+            if ($emailFilled) {
+                $hasEmail++;
+            }
+            if ($websiteFilled) {
+                $hasWebsite++;
+            }
 
             $cid = $f->city_id;
-            if (!isset($cityStats[$cid])) {
+            if (! isset($cityStats[$cid])) {
                 $cityStats[$cid] = [
                     'total' => 0,
                     'no_contacts' => 0,
@@ -74,7 +82,7 @@ final class DataQualityCoverageCommand extends Command
 
             $cityStats[$cid]['total']++;
 
-            if (!$phoneFilled && !$emailFilled && !$websiteFilled) {
+            if (! $phoneFilled && ! $emailFilled && ! $websiteFilled) {
                 $noContacts++;
                 $cityStats[$cid]['no_contacts']++;
             }
@@ -86,19 +94,19 @@ final class DataQualityCoverageCommand extends Command
         $pctWebsite = ($hasWebsite / $total) * 100;
         $pctNoContacts = ($noContacts / $total) * 100;
 
-        $this->info("=== Contact Coverage Report ===");
+        $this->info('=== Contact Coverage Report ===');
 
-        $this->info("General Stats:");
+        $this->info('General Stats:');
         $this->table(
             ['Metric', 'Count', 'Percentage'],
             [
                 ['Total Facilities', $total, '100%'],
-                ['Verified', $verified, number_format(($verified / $total) * 100, 1) . '%'],
-                ['Unverified', $unverified, number_format(($unverified / $total) * 100, 1) . '%'],
-                ['Has Phone', $hasPhone, number_format($pctPhone, 1) . '%'],
-                ['Has Email', $hasEmail, number_format($pctEmail, 1) . '%'],
-                ['Has Website', $hasWebsite, number_format($pctWebsite, 1) . '%'],
-                ['No Contacts At All', $noContacts, number_format($pctNoContacts, 1) . '%'],
+                ['Verified', $verified, number_format(($verified / $total) * 100, 1).'%'],
+                ['Unverified', $unverified, number_format(($unverified / $total) * 100, 1).'%'],
+                ['Has Phone', $hasPhone, number_format($pctPhone, 1).'%'],
+                ['Has Email', $hasEmail, number_format($pctEmail, 1).'%'],
+                ['Has Website', $hasWebsite, number_format($pctWebsite, 1).'%'],
+                ['No Contacts At All', $noContacts, number_format($pctNoContacts, 1).'%'],
             ]
         );
 
@@ -109,20 +117,24 @@ final class DataQualityCoverageCommand extends Command
         $rows = [];
         $i = 0;
         foreach ($cityStats as $cid => $stats) {
-            if ($stats['no_contacts'] === 0) continue;
-            if ($i++ >= $limit) break;
+            if ($stats['no_contacts'] === 0) {
+                continue;
+            }
+            if ($i++ >= $limit) {
+                break;
+            }
 
             $cityName = City::where('id', $cid)->value('name') ?? 'Unknown';
             $rows[] = [
                 $cityName,
                 $stats['total'],
                 $stats['no_contacts'],
-                number_format(($stats['no_contacts'] / $stats['total']) * 100, 1) . '%',
+                number_format(($stats['no_contacts'] / $stats['total']) * 100, 1).'%',
             ];
         }
 
         if (empty($rows)) {
-            $this->line("All cities have 100% contact coverage!");
+            $this->line('All cities have 100% contact coverage!');
         } else {
             $this->table(['City', 'Total Facilities', 'Lacking Contacts', 'Lack Percentage'], $rows);
         }

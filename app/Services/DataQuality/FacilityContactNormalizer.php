@@ -24,7 +24,7 @@ final class FacilityContactNormalizer
             '/\x{FEFF}/u', // zero-width no-break space
             '/[\x00-\x1F\x7F]/', // ASCII control characters
         ];
-        
+
         $cleaned = preg_replace($patterns, '', $value);
         $cleaned = trim($cleaned);
 
